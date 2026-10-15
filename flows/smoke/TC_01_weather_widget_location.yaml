@@ -5,7 +5,7 @@ name: "TC01 - Location-Based Personalization via Weather Widget"
 tags:
   - home
   - regression
-  - critical
+  - smoke
 ---
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml

@@ -9,7 +9,7 @@ tags:
   - home
   - chat
   - regression
-  - critical
+  - smoke
 ---
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml

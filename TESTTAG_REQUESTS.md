@@ -12,7 +12,7 @@ are the main source of flaky tests.
 This doc lists only what is **missing or wrong**. Screens not mentioned are correctly tagged.
 
 > **Update — 15 Oct 2026, build 4.1.5 (versionCode 113)**, re-checked on an OPPO CPH2127
-> (Android 12) and a Vivo 1919 (Android 12) while running the critical batch:
+> (Android 12) and a Vivo 1919 (Android 12) while running the smoke suite:
 > - The composer **still** exposes no testTags (P0 below is unchanged).
 > - **New P0:** the answer's Share/Listen row intermittently drops out of the accessibility tree
 >   (section below). It blocks TC05 (Listen) on some runs and affects TalkBack users too.

@@ -5,7 +5,7 @@ name: "TC03 - Home Feed Scrolls + Opens a Card's Chat"
 tags:
   - home
   - regression
-  - critical
+  - smoke
 ---
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml

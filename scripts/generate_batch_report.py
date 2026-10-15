@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
 """Build an HTML page for one test batch from its latest review runs.
 
-Usage:  python3 scripts/generate_batch_report.py [batch]      (default: critical)
+Usage:  python3 scripts/generate_batch_report.py [batch]      (default: smoke)
 
 Reads, per flow in flows/<batch>/:
   - the YAML front-matter (name, priority, description, tags, requires)
   - the latest run under reports/review/<batch>/<flow>/ (run.log + Maestro's
     maestro.log) for pass/fail, duration, step timings and the failure reason
   - videos in reports/recordings/<batch>/<flow>[_partN].mp4
-and writes reports/<batch>_batch_report.html (videos are linked, not embedded,
-so the page stays small and nothing leaves the machine).
+and writes reports/FarmerChat_<Batch>_v<version>_<device>_<date>.html — version
+from app.apk, device from the phone that ran the tests, date of the latest run.
+Videos are linked, not embedded, so the page stays small and nothing leaves the
+machine.
 """
 import glob
 import html
 import os
 import re
+import shutil
+import subprocess
 import sys
 from datetime import datetime
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BATCH = sys.argv[1] if len(sys.argv) > 1 else "critical"
+BATCH = sys.argv[1] if len(sys.argv) > 1 else "smoke"
 REPORTS = os.path.join(REPO, "reports")
-OUT = os.path.join(REPORTS, f"{BATCH}_batch_report.html")
+BATCH_LABEL = "".join(w.capitalize() for w in BATCH.split("_"))   # settings_help → SettingsHelp
 
 LINE = re.compile(r"^(\d\d:\d\d:\d\d\.\d{3}) \[[^\]]*\] [^:]*: (.*) (RUNNING|COMPLETED|FAILED|SKIPPED|WARNED)$")
 
@@ -97,9 +101,44 @@ def parse_run(stem):
             msg = m.group(1).strip()
         failure = {"step": step, "message": msg}
     shots = sorted(glob.glob(os.path.join(os.path.dirname(log), "screenshot-❌-*.png")))
-    return {"status": "FAIL" if failed else "PASS", "duration": duration, "steps": steps,
+    sel = re.search(r"Selected device (\S+)", open(log, encoding="utf-8", errors="replace").read())
+    dev_file = os.path.join(d, "device.txt")
+    saved = tuple((open(dev_file).read().splitlines() + ["", ""])[:2]) if os.path.exists(dev_file) else None
+    return {"serial": sel.group(1) if sel else "", "saved_device": saved,
+            "status": "FAIL" if failed else "PASS", "duration": duration, "steps": steps,
             "failure": failure, "run": run_dir,
             "shot": os.path.relpath(shots[-1], REPORTS) if shots else None}
+
+
+def sh(cmd):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=20).stdout.strip()
+    except Exception:
+        return ""
+
+
+def app_version():
+    """versionName of app.apk via aapt2 from the Android SDK, if available."""
+    sdk = os.environ.get("ANDROID_HOME") or os.path.expanduser("~/Library/Android/sdk")
+    tools = sorted(glob.glob(os.path.join(sdk, "build-tools", "*", "aapt2"))) or [shutil.which("aapt2") or ""]
+    out = sh([tools[-1], "dump", "badging", os.path.join(REPO, "app.apk")]) if tools[-1] else ""
+    m = re.search(r"versionName='([^']+)'", out)
+    return m.group(1) if m else "unknown"
+
+
+def device_name(serial, saved=None):
+    """Readable model of the device that ran the tests, e.g. 'Vivo1919'.
+    Prefers the device.txt saved with the run (manufacturer, model), then adb."""
+    maker, model = saved or ("", "")
+    if not model and serial:
+        maker = sh(["adb", "-s", serial, "shell", "getprop", "ro.product.manufacturer"])
+        model = sh(["adb", "-s", serial, "shell", "getprop", "ro.product.model"])
+    if not serial and not model:
+        return "UnknownDevice"
+    if not model:
+        return re.sub(r"\W", "", serial)          # device not connected → serial
+    name = model if maker.lower() in model.lower() else f"{maker} {model}"
+    return "".join(w[:1].upper() + w[1:] for w in re.split(r"[^A-Za-z0-9]+", name) if w)
 
 
 def videos(stem):
@@ -114,6 +153,16 @@ for path in sorted(glob.glob(os.path.join(REPO, "flows", BATCH, "TC_*.yaml"))):
     meta = front_matter(path)
     run = parse_run(stem)
     rows.append({"stem": stem, "file": os.path.relpath(path, REPO), **meta, "run": run, "videos": videos(stem)})
+
+runs = [r["run"] for r in rows if r["run"]]
+latest = max((r["run"] for r in runs), default="")             # run dir: YYYY-MM-DD_HHMMSS
+run_date = latest[:10] or datetime.now().strftime("%Y-%m-%d")
+serials = [r["serial"] for r in runs if r["serial"]]
+serial = max(set(serials), key=serials.count) if serials else ""
+DEVICE = device_name(serial, next((r["saved_device"] for r in runs
+                                   if r["serial"] == serial and r["saved_device"]), None))
+VERSION = app_version()
+OUT = os.path.join(REPORTS, f"FarmerChat_{BATCH_LABEL}_v{VERSION}_{DEVICE}_{run_date}.html")
 
 total = len(rows)
 passed = sum(1 for r in rows if r["run"] and r["run"]["status"] == "PASS")
@@ -170,7 +219,7 @@ def row_html(r):
 page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{e(BATCH.replace('_', ' ').title())} Batch Report</title>
+<title>FarmerChat {e(BATCH_LABEL)} Report</title>
 <style>
 :root {{ --bg:#f6f7f5; --card:#fff; --fg:#1b1f1c; --muted:#66706a; --line:#e2e6e1;
   --pass:#1f7a3f; --pass-bg:#e5f4ea; --fail:#b42318; --fail-bg:#fdeceb; --skip:#8a6d00; --skip-bg:#fbf3d5;
@@ -225,8 +274,8 @@ dialog .bar button {{ background:none; border:0; color:#fff; font-size:20px; cur
 dialog video {{ display:block; width:100%; max-height:80vh; background:#000; }}
 </style></head>
 <body><main>
-<h1>{e(BATCH.replace('_', ' ').title())} batch: test report</h1>
-<p class="sub">FarmerChat · latest review run of each test · generated {datetime.now().strftime('%d %b %Y, %H:%M')}</p>
+<h1>{e(BATCH_LABEL)} suite: test report</h1>
+<p class="sub">FarmerChat v{e(VERSION)} · {e(DEVICE)} · runs of {e(run_date)} · generated {datetime.now().strftime('%d %b %Y, %H:%M')}</p>
 <div class="cards">
   <div class="card"><div class="k">Tests</div><div class="v">{total}</div></div>
   <div class="card pass"><div class="k">Passed</div><div class="v">{passed}</div></div>

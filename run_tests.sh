@@ -117,8 +117,8 @@ echo -e "Tester: ${YELLOW}$TESTER_NAME${NC}"
 # Entries are TC ids or @<tag> (every flow carrying that Maestro tag).
 # Examples: ./run_tests.sh "Imran" TC03
 #           ./run_tests.sh "Imran" TC01,TC03
-#           ./run_tests.sh "Imran" @critical
-#           ./run_tests.sh "Imran" @critical,TC08
+#           ./run_tests.sh "Imran" @smoke
+#           ./run_tests.sh "Imran" @smoke,TC08
 # ─────────────────────────────────────────────────────────────────────────────
 TC_FILTER="${2:-}"
 if [ -n "$TC_FILTER" ]; then
@@ -554,8 +554,8 @@ setup_test() {
 # ─────────────────────────────────────────────────────────────────────────────
 # DISCOVER TEST CASES from flows/<batch>/TC_<NN>_*.yaml
 # Batches run in BATCH_DIRS order; TC numbers are globally sequential
-# across batches (critical = TC01–TC11, core = TC12–…), and every flow
-# also carries its batch name as a tag, so `@critical` selects a batch.
+# across batches (smoke = TC01–TC11, core = TC12–…), and every flow
+# also carries its batch name as a tag, so `@smoke` selects a batch.
 # Each TC entry is built from the YAML front-matter:
 #   `name:`          → display name (required; fallback = filename)
 #   `# priority:`    → P0/P1/P2 comment in front-matter (default P1)
@@ -567,7 +567,7 @@ setup_test() {
 # "TC_09" runs every file in the group.
 # Format kept identical to the old hardcoded array: TC_ID|FILE|NAME|DESC|PRIO
 # ─────────────────────────────────────────────────────────────────────────────
-BATCH_DIRS=(critical core settings_help first_launch offline)
+BATCH_DIRS=(smoke core settings_help first_launch offline)
 declare -a TEST_CASES=()
 declare -a TEST_TAGS=()   # parallel to TEST_CASES
 for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0-9]*_*.yaml 2>/dev/null; done); do
@@ -586,7 +586,7 @@ for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0
   tc_priority=""
   tc_desc=""
   tc_requires=""   # e.g. "LANGUAGE_CODE=en"
-  tc_tags=","      # ",home,regression,critical," — for @tag filtering
+  tc_tags=","      # ",home,regression,smoke," — for @tag filtering
   in_tags=0
 
   # Read front-matter only (stop at `---`).

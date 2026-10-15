@@ -12,7 +12,7 @@ Maestro_automation_FarmerChat_End_to_End_Flow/
 │   ├── env.local.example.yaml    # Template for secrets — copy to env.local.yaml
 │   └── env.local.yaml            # Gitignored secrets (PHONE_NUMBER, OTP_CODE); overrides env.yaml
 ├── flows/
-│   ├── critical/                 # Batch 1: TC01–TC11 — core positive flows
+│   ├── smoke/                    # Batch 1: TC01–TC11 — smoke suite (must-pass core flows)
 │   ├── core/                     # Batch 2: TC12–TC23 — secondary positive flows
 │   ├── settings_help/            # Batch 3: TC24–TC28
 │   ├── first_launch/             # Batch 4: TC29–TC32
@@ -69,7 +69,7 @@ Maestro_automation_FarmerChat_End_to_End_Flow/
 ## Running tests
 
 `run_tests.sh` is the single entry point for running the suite — locally and in CI. It discovers
-every `flows/<batch>/TC_NN_*.yaml` (batches in order: critical, core, settings_help, first_launch,
+every `flows/<batch>/TC_NN_*.yaml` (batches in order: smoke, core, settings_help, first_launch,
 offline), loads env config, retries each test up to 3 times, captures video + debug output, and
 generates an HTML/JSON report under `reports/`. It does not clear app state between tests; it relies
 on the idempotent `complete_onboarding.yaml` helper, and sign-up tests log out first via
@@ -80,7 +80,7 @@ is pushed to the device once per run so no personal photo is ever uploaded.
 ./run_tests.sh "Imran"            # tester name; run the whole suite
 ./run_tests.sh "Imran" TC01       # single test by ID (not filename)
 ./run_tests.sh "Imran" TC01,TC03  # comma-separated subset
-./run_tests.sh "Imran" @critical  # one batch (or any tag); mix with ids: @critical,TC13
+./run_tests.sh "Imran" @smoke     # one batch (or any tag); mix with ids: @smoke,TC13
 ```
 
 ### Run a single flow directly with Maestro
@@ -88,7 +88,7 @@ is pushed to the device once per run so no personal photo is ever uploaded.
 Flows interpolate `${...}` variables, so env flags are required:
 
 ```bash
-maestro --device emulator-5554 test flows/critical/TC_01_weather_widget_location.yaml \
+maestro --device emulator-5554 test flows/smoke/TC_01_weather_widget_location.yaml \
   -e APP_ID=org.digitalgreen.farmer.chat -e LANGUAGE_CODE=en -e USER_NAME="Test Farmer"
 ```
 
@@ -120,19 +120,28 @@ tags:
 Tests are grouped into batches (one folder each) and numbered **TC01–TC36** in batch order. Every
 test is tagged with its batch name, its functional area, and `regression`.
 
+- **Smoke** (`smoke`, TC01–TC11): must-pass core flows, run first on every new build. If smoke fails,
+  the build is rejected before the rest is run.
+- **Functional batches** (`core`, `settings_help`, `first_launch`, `offline`): deeper coverage,
+  including the negative/error cases in `offline`.
+- **Regression**: all batches together, run before a release.
+
+`python3 scripts/generate_batch_report.py smoke` builds an HTML report for a batch (results, timings,
+failure reasons and click-to-play videos) as `reports/FarmerChat_<Batch>_v<version>_<device>_<date>.html`.
+
 | Batch | ID | Test | Priority |
 |---|---|---|---|
-| `critical` | TC01 | Location-Based Personalization via Weather Widget | P0 |
-| `critical` | TC02 | Type a Question → AI Response with Suggestions | P0 |
-| `critical` | TC03 | Home Feed Scrolls + Opens a Card's Chat | P1 |
-| `critical` | TC04 | Photo Question from Gallery → AI Response | P1 |
-| `critical` | TC05 | Listen to AI Response (TTS Playback) | P0 |
-| `critical` | TC06 | Speak Button Opens Voice-Input Overlay | P2 |
-| `critical` | TC07 | Chat Back (←) Returns to Home | P1 |
-| `critical` | TC08 | Full Sign Up via Drawer (Phone + OTP → Home) | P0 |
-| `critical` | TC09 | Full Sign Up via Settings (Phone + OTP → Signed In) | P0 |
-| `critical` | TC10 | Drawer "See All" Opens Chat History Screen | P1 |
-| `critical` | TC11 | Sign Up + Logout via Settings | P0 |
+| `smoke` | TC01 | Location-Based Personalization via Weather Widget | P0 |
+| `smoke` | TC02 | Type a Question → AI Response with Suggestions | P0 |
+| `smoke` | TC03 | Home Feed Scrolls + Opens a Card's Chat | P1 |
+| `smoke` | TC04 | Photo Question from Gallery → AI Response | P1 |
+| `smoke` | TC05 | Listen to AI Response (TTS Playback) | P0 |
+| `smoke` | TC06 | Speak Button Opens Voice-Input Overlay | P2 |
+| `smoke` | TC07 | Chat Back (←) Returns to Home | P1 |
+| `smoke` | TC08 | Full Sign Up via Drawer (Phone + OTP → Home) | P0 |
+| `smoke` | TC09 | Full Sign Up via Settings (Phone + OTP → Signed In) | P0 |
+| `smoke` | TC10 | Drawer "See All" Opens Chat History Screen | P1 |
+| `smoke` | TC11 | Sign Up + Logout via Settings | P0 |
 | `core` | TC12 | Chat Follow-up via Suggested Question Tap | P0 |
 | `core` | TC13 | Share AI Response via System Chooser | P1 |
 | `core` | TC14 | Save AI Response Shows Confirmation | P2 |

@@ -7,7 +7,7 @@ tags:
   - settings
   - auth
   - regression
-  - critical
+  - smoke
 ---
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml

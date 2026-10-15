@@ -15,12 +15,14 @@ YAML flows, reusable sub-flows, and bash runners that orchestrate Maestro + adb 
 
   | Batch folder | IDs | Scope |
   |---|---|---|
-  | `flows/critical/` | TC01–TC11 | Core positive flows: weather, typed Q→A, feed, gallery photo, listen, voice, chat back, sign-up (side menu + Settings), chat history, logout |
+  | `flows/smoke/` | TC01–TC11 | **Smoke suite** — must-pass core flows run first on every build: weather, typed Q→A, feed, gallery photo, listen, voice, chat back, sign-up (side menu + Settings), chat history, logout |
   | `flows/core/` | TC12–TC23 | Secondary positive flows: follow-up, share, save, camera, profile cards, language, sign-up entry screens |
   | `flows/settings_help/` | TC24–TC28 | Settings and Help screens |
   | `flows/first_launch/` | TC29–TC32 | Location interstitial and first-launch legal links |
   | `flows/offline/` | TC33–TC36 | No-internet / airplane-mode error + retry |
 
+  Suite terms: **Smoke** = the `smoke` batch (if it fails, reject the build); the other batches are
+  functional suites; **Regression** = every batch together (all flows carry the `regression` tag).
   `run_tests.sh` lists these folders in `BATCH_DIRS` and globs `TC_[0-9]*_*.yaml` in each, so adding a
   flow to an existing batch needs no runner change. Keep numbers unique and gapless across batches
   (renumber later batches if you insert or delete one). Every flow also carries its batch name as a tag.
@@ -55,7 +57,7 @@ tags:
   test is **skipped with a yellow warning**, not run-and-failed. Sign-up flows use
   `# requires: PHONE_NUMBER,OTP_CODE`; the TTS test uses `# requires: LANGUAGE_CODE=en`.
 - Always use `${APP_ID}` for `appId` (project convention — do not hardcode the package).
-- Tags in use: `regression` (on all), the batch name (`critical`, `core`, `settings_help`,
+- Tags in use: `regression` (on all), the batch name (`smoke`, `core`, `settings_help`,
   `first_launch`, `offline`), plus area tags `home`, `chat`, `settings`, `auth`, `onboarding`,
   `navigation`, `legal`, `help`, `error`, `camera`.
 
@@ -79,8 +81,8 @@ upload). Run from repo root:
 ./run_tests.sh "Imran"                 # tester name; runs all discovered TCs
 ./run_tests.sh "Imran" TC01            # single test (id, not filename)
 ./run_tests.sh "Imran" TC01,TC03       # comma-separated subset
-./run_tests.sh "Imran" @critical       # every flow tagged `critical` (any tag works)
-./run_tests.sh "Imran" @critical,TC13  # tags and ids can be mixed
+./run_tests.sh "Imran" @smoke          # every flow tagged `smoke` (any tag works)
+./run_tests.sh "Imran" @smoke,TC13     # tags and ids can be mixed
 ```
 
 - Each test gets **up to 3 attempts** (`MAX_RETRIES=2`). Between attempts it `am force-stop`s the
@@ -95,7 +97,7 @@ upload). Run from repo root:
   flows use `${...}` interpolation:
 
 ```bash
-maestro --device emulator-5554 test flows/critical/TC_01_weather_widget_location.yaml \
+maestro --device emulator-5554 test flows/smoke/TC_01_weather_widget_location.yaml \
   -e APP_ID=org.digitalgreen.farmer.chat -e LANGUAGE_CODE=en -e USER_NAME="Test Farmer"
 ```
 

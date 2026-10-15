@@ -5,7 +5,7 @@ name: "TC07 - Chat Back (←) Returns to Home"
 tags:
   - chat
   - regression
-  - critical
+  - smoke
 ---
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml

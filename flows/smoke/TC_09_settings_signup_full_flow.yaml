@@ -1,34 +1,26 @@
 appId: ${APP_ID}
-name: "TC08 - Full Sign Up via Drawer (Phone + OTP → Home)"
+name: "TC09 - Full Sign Up via Settings (Phone + OTP → Signed In)"
 # priority: P0
 # requires: PHONE_NUMBER,OTP_CODE
-# description: Complete end-to-end sign-up test: opens the drawer, enters the sign-up flow, submits the configured phone number, enters the OTP code, taps Continue on the account-success screen, and confirms the user lands back on the home screen as an authenticated user.
+# description: Complete end-to-end sign-up from the Settings entry point: opens Side menu → Settings, taps Sign Up, submits the configured phone number and OTP, taps Continue on the account-success screen, and confirms the user is signed in (Settings auth entry now reads Logout).
 tags:
+  - settings
   - auth
   - regression
-  - critical
+  - smoke
 ---
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml
 # Sign-up entry is only shown when signed out.
 - runFlow: ../../helpers/ensure_signed_out.yaml
 
-- scrollUntilVisible:
-    centerElement: false
-    element:
-      id: "home_hamburger_button"
-    direction: UP
-    timeout: 15000
+# Side menu → Settings → Sign Up (settings_btn_auth reads "Sign up"
+# while signed out, "Logout" once signed in).
+- runFlow: ../../helpers/navigate_to_settings.yaml
 - tapOn:
-    id: "home_hamburger_button"
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: "drawer_signup_btn"
-    timeout: 5000
-- tapOn:
-    id: "drawer_signup_btn"
+    id: "settings_btn_auth"
 
+# Optional account-benefits intermediate screen (some builds insert it)
 - runFlow:
     when:
       visible:
@@ -69,18 +61,21 @@ tags:
 - tapOn:
     id: "auth_verify_btn"
 
-# Success → Continue → home
+# Success → Continue → Home (4.1.5 returns to Home, not Settings).
 - extendedWaitUntil:
     visible:
       id: "account_success_screen"
     timeout: 30000
-- assertVisible:
-    id: "account_success_btn_continue"
 - tapOn:
     id: "account_success_btn_continue"
 - extendedWaitUntil:
     visible:
       id: "home_screen"
     timeout: 15000
+
+# Signed in: Settings auth entry has flipped to Logout.
+- runFlow: ../../helpers/navigate_to_settings.yaml
 - assertVisible:
-    id: "home_screen"
+    id: "settings_btn_auth"
+    containsChild:
+      text: "Log ?out"
