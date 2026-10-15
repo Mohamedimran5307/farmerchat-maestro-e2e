@@ -10,10 +10,22 @@ YAML flows, reusable sub-flows, and bash runners that orchestrate Maestro + adb 
 
 ## Test layout & conventions
 
-- **`flows/home/TC_NN_*.yaml`** — the live test suite, numbered sequentially **TC_01–TC_35**. All
-  runners discover tests by globbing `flows/home/TC_[0-9]*_*.yaml`, so adding/removing a flow doesn't
-  require touching the runner — but if you delete one, renumber the rest to keep the sequence gapless.
+- **`flows/<batch>/TC_NN_*.yaml`** — the live suite, split into batches that run in this order, with
+  **one gapless TC number sequence across all of them**:
+
+  | Batch folder | IDs | Scope |
+  |---|---|---|
+  | `flows/critical/` | TC01–TC11 | Core positive flows: weather, typed Q→A, feed, gallery photo, listen, voice, chat back, sign-up (side menu + Settings), chat history, logout |
+  | `flows/core/` | TC12–TC23 | Secondary positive flows: follow-up, share, save, camera, profile cards, language, sign-up entry screens |
+  | `flows/settings_help/` | TC24–TC28 | Settings and Help screens |
+  | `flows/first_launch/` | TC29–TC32 | Location interstitial and first-launch legal links |
+  | `flows/offline/` | TC33–TC36 | No-internet / airplane-mode error + retry |
+
+  `run_tests.sh` lists these folders in `BATCH_DIRS` and globs `TC_[0-9]*_*.yaml` in each, so adding a
+  flow to an existing batch needs no runner change. Keep numbers unique and gapless across batches
+  (renumber later batches if you insert or delete one). Every flow also carries its batch name as a tag.
 - **`flows/onboarding/`** — legacy, *not* picked up by the runners. Ignore unless explicitly asked.
+  (It is not a batch folder; the first-launch batch is `flows/first_launch/`.)
 - Filename `TC_05_…` maps to CLI/report id `TC05` (underscore dropped). The runner derives the id
   from the leading digits of the filename.
 - **`helpers/`** — reusable sub-flows invoked via `runFlow: ../../helpers/<name>.yaml`. Most tests
@@ -43,7 +55,8 @@ tags:
   test is **skipped with a yellow warning**, not run-and-failed. Sign-up flows use
   `# requires: PHONE_NUMBER,OTP_CODE`; the TTS test uses `# requires: LANGUAGE_CODE=en`.
 - Always use `${APP_ID}` for `appId` (project convention — do not hardcode the package).
-- Tags in use: `regression` (on all), plus `home`, `chat`, `settings`, `auth`, `onboarding`,
+- Tags in use: `regression` (on all), the batch name (`critical`, `core`, `settings_help`,
+  `first_launch`, `offline`), plus area tags `home`, `chat`, `settings`, `auth`, `onboarding`,
   `navigation`, `legal`, `help`, `error`, `camera`.
 
 ## Configuration & secrets
@@ -66,29 +79,39 @@ upload). Run from repo root:
 ./run_tests.sh "Imran"                 # tester name; runs all discovered TCs
 ./run_tests.sh "Imran" TC01            # single test (id, not filename)
 ./run_tests.sh "Imran" TC01,TC03       # comma-separated subset
+./run_tests.sh "Imran" @critical       # every flow tagged `critical` (any tag works)
+./run_tests.sh "Imran" @critical,TC13  # tags and ids can be mixed
 ```
 
 - Each test gets **up to 3 attempts** (`MAX_RETRIES=2`). Between attempts it `am force-stop`s the
-  app but does **not** clear state — it relies on idempotent onboarding.
+  app but does **not** clear state — it relies on idempotent onboarding. Sign-up flows call
+  `helpers/ensure_signed_out.yaml` (directly or via `full_signup.yaml`) so a user left signed in by an
+  earlier test doesn't hide the Sign up entry.
+- Before each attempt it also closes a leftover Files picker, goes to the phone's Home screen and
+  starts the screen recording, so every video starts from the launcher → splash. Once per run it
+  pushes `test_assets/crop_disease.jpg` to the device as `Pictures/farmerchat_test_tomato.jpg`; the
+  gallery flow picks that image so a run never uploads a personal photo.
 - Run a single flow directly with Maestro (bypassing the runner) — env flags are required because
   flows use `${...}` interpolation:
 
 ```bash
-maestro --device emulator-5554 test flows/home/TC_01_weather_widget_location.yaml \
+maestro --device emulator-5554 test flows/critical/TC_01_weather_widget_location.yaml \
   -e APP_ID=org.digitalgreen.farmer.chat -e LANGUAGE_CODE=en -e USER_NAME="Test Farmer"
 ```
 
 ### Auxiliary scripts (`scripts/`)
 
 - `scripts/run_failed.sh` — re-run only the TCs that failed in the last run.
-- **Offline-network tests are self-contained.** TC_29/TC_30 (global no-internet error + retry),
-  TC_31 (chat send offline → inline error + retry), and TC_32 (chat history offline → error + retry)
+- **Offline-network tests are self-contained.** TC_33/TC_34 (global no-internet error + retry),
+  TC_35 (chat send offline → inline error + retry), and TC_36 (chat history offline → error + retry)
   each toggle the radio in-flow via `setAirplaneMode: enabled/disabled` and drive their own
   recovery — no manual network toggling and no required run order. (These were previously
   `_setup`/`_assert`/`_recovery` triplets; now consolidated into one flow apiece.)
 - **Note on `device-farm/`:** it is a self-contained physical-device harness with its **own** copies
   of `run_tests.sh` / `tc_metadata.sh` / `generate_report.sh` under `device-farm/scripts/`. Its docs
-  still describe an older 40-TC mapping — verify against the actual `flows/home/` glob, not those.
+  still describe an older 40-TC mapping — verify against the actual `flows/<batch>/` folders, not those.
+- `scripts/run_failed.sh`, `generate_report.sh` and `generate_report_only.sh` hardcode an even older
+  layout (`flows/chat/…`, `flows/home/NN_…`) and are stale; `run_tests.sh` is the one to use.
 
 ## App binary & CI
 
@@ -108,4 +131,26 @@ maestro --device emulator-5554 test flows/home/TC_01_weather_widget_location.yam
 - AI-response waits are slow: existing flows use `extendedWaitUntil` / `scrollUntilVisible` with
   long timeouts (up to 90s). Match that pattern rather than fixed sleeps.
 - Guard optional/OEM-specific UI (permission dialogs, "Try again" error screens) with
-  `runFlow: { when: { visible: ... } }` blocks, as `complete_onboarding.yaml` does.
+  `runFlow: { when: { visible: ... } }` blocks, as `complete_onboarding.yaml` does. When several
+  fallback tiers could all match, set an `output.*` flag in the first tier that fires and gate the
+  later ones on it (see the `composer_*.yaml` helpers) so one tap doesn't trigger twice.
+
+### 4.1.x UI pitfalls (learned on device)
+
+- **Composer** (`[Camera] [field] [Voice/Send]`) has no testTags yet — the `composer_*.yaml` helpers
+  match its labels ("Ask about your farm...", "Send", "Camera", "Voice") with a legacy-id fallback.
+  Its border animates forever, so `waitForAnimationToEnd` always runs to its limit and taps wait to
+  settle: use `waitToSettleTimeoutMs: 500` on taps and wait for a concrete element instead.
+- **The hamburger/weather buttons float over the feed** and the header text stays in the hierarchy
+  behind the cards, so none of them indicate scroll position. TC03 uses the first card's question
+  (copied at launch) as the top marker and `helpers/feed_fingerprint.yaml` to detect the feed end.
+- **Swipe the feed along the left margin** (`2%` x): a centre swipe lands on the crops card's own
+  scrollable list. Very fast swipes register as taps; long drags at the top trigger pull-to-refresh,
+  which reorders the feed.
+- **`centerElement: true` times out near the end of a list** (the element can't reach the middle);
+  use `centerElement: false` for chat action rows and the top/bottom of the feed.
+- `copyTextFrom` / `below` / `above` return the **first match in hierarchy order**, not the nearest.
+- The answer's Share/Listen row intermittently drops out of the accessibility tree (Listen missing,
+  Share shrunk) — an app bug tracked in `TESTTAG_REQUESTS.md`; TC05 can fail on it.
+- Some devices (e.g. Vivo) open the **Files** picker for the gallery, others the Photo picker; TC04
+  handles both. OPPO/ColorOS has no `screenrecord`, so it can't record video.

@@ -1,0 +1,41 @@
+appId: ${APP_ID}
+---
+# ============================================================
+# FINGERPRINT THE VISIBLE HOME FEED → output.feedFp
+# ============================================================
+# Joins the first 4 texts currently rendered in home_feed_list ("Ask
+# Now" labels excluded — every card has one). The feed only renders the
+# cards on screen, so any real scroll changes this; an unchanged value
+# after a swipe means the feed is at its end — no reliance on an
+# end-of-feed note. Missing indices are optional (short screens).
+# ============================================================
+
+- evalScript: ${output.feedFp = ''}
+- copyTextFrom:
+    text: "(?!Ask Now).{4,}"
+    childOf:
+      id: "home_feed_list"
+    index: 0
+    optional: true
+- evalScript: ${output.feedFp = output.feedFp + '|' + maestro.copiedText}
+- copyTextFrom:
+    text: "(?!Ask Now).{4,}"
+    childOf:
+      id: "home_feed_list"
+    index: 1
+    optional: true
+- evalScript: ${output.feedFp = output.feedFp + '|' + maestro.copiedText}
+- copyTextFrom:
+    text: "(?!Ask Now).{4,}"
+    childOf:
+      id: "home_feed_list"
+    index: 2
+    optional: true
+- evalScript: ${output.feedFp = output.feedFp + '|' + maestro.copiedText}
+- copyTextFrom:
+    text: "(?!Ask Now).{4,}"
+    childOf:
+      id: "home_feed_list"
+    index: 3
+    optional: true
+- evalScript: ${output.feedFp = output.feedFp + '|' + maestro.copiedText}

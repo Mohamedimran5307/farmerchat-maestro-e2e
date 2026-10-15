@@ -1,0 +1,86 @@
+appId: ${APP_ID}
+name: "TC08 - Full Sign Up via Drawer (Phone + OTP → Home)"
+# priority: P0
+# requires: PHONE_NUMBER,OTP_CODE
+# description: Complete end-to-end sign-up test: opens the drawer, enters the sign-up flow, submits the configured phone number, enters the OTP code, taps Continue on the account-success screen, and confirms the user lands back on the home screen as an authenticated user.
+tags:
+  - auth
+  - regression
+  - critical
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+# Sign-up entry is only shown when signed out.
+- runFlow: ../../helpers/ensure_signed_out.yaml
+
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "home_hamburger_button"
+    direction: UP
+    timeout: 15000
+- tapOn:
+    id: "home_hamburger_button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "drawer_signup_btn"
+    timeout: 5000
+- tapOn:
+    id: "drawer_signup_btn"
+
+- runFlow:
+    when:
+      visible:
+        id: "account_benefits_btn_signup"
+    commands:
+      - tapOn:
+          id: "account_benefits_btn_signup"
+
+# Phone step
+- extendedWaitUntil:
+    visible:
+      id: "auth_phone_input"
+    timeout: 10000
+- tapOn:
+    id: "auth_phone_input"
+- inputText: "${PHONE_NUMBER}"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "auth_send_sms_btn"
+    timeout: 5000
+- tapOn:
+    id: "auth_send_sms_btn"
+
+# OTP step
+- extendedWaitUntil:
+    visible:
+      id: "auth_otp_input"
+    timeout: 30000
+- tapOn:
+    id: "auth_otp_input"
+- inputText: "${OTP_CODE}"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: "auth_verify_btn"
+    timeout: 5000
+- tapOn:
+    id: "auth_verify_btn"
+
+# Success → Continue → home
+- extendedWaitUntil:
+    visible:
+      id: "account_success_screen"
+    timeout: 30000
+- assertVisible:
+    id: "account_success_btn_continue"
+- tapOn:
+    id: "account_success_btn_continue"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000
+- assertVisible:
+    id: "home_screen"

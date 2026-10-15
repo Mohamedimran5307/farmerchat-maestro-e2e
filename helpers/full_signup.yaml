@@ -13,15 +13,18 @@ appId: ${APP_ID}
 #   PHONE_NUMBER  — the phone to sign up with
 #   OTP_CODE      — the OTP to verify with
 #
-# Usage from a flow under flows/home/:
+# Usage from a flow under flows/<batch>/:
 #   - runFlow: ../../helpers/full_signup.yaml
 #
 # NOT to be called by tests that verify sign-up entry points
-# themselves (TC12 settings_signup_phone, TC13 settings_signup_skip,
-# TC14 drawer_signup_phone, TC20 drawer_signup_full_flow) — those
+# themselves (TC22 settings_signup_phone, TC23 settings_signup_skip,
+# TC21 drawer_signup_phone, TC08 drawer_signup_full_flow) — those
 # tests must keep the flow inline so they are testing the user
 # journey rather than this helper.
 # ============================================================
+
+# Start signed out — a previous test may have left the user logged in.
+- runFlow: ensure_signed_out.yaml
 
 # Ensure expanded top so the hamburger is in the hierarchy.
 - scrollUntilVisible:

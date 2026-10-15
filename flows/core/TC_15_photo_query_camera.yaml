@@ -1,0 +1,109 @@
+appId: ${APP_ID}
+name: "TC15 - Photo Question from Camera → AI Response"
+# priority: P2
+# description: Verifies the photo-based chat flow via the device camera: taps the composer Camera button, picks the Camera option, captures and accepts a photo, sends it as a chat question, and confirms an AI answer renders with its suggested-questions block.
+# TODO: This test depends on the device's native camera UI
+# (com.android.camera2 testTags are AOSP-specific). On the Redmi
+# device under test the camera package may be different — e.g.
+# com.android.camera or com.mi.android.camera. The shutter / done
+# fallbacks below are best-effort; needs live-device verification.
+tags:
+  - chat
+  - camera
+  - regression
+  - core
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+- runFlow: ../../helpers/composer_tap_photo.yaml
+
+# Pick Camera in the in-app photo sheet (legacy UI: text-matched picker)
+- evalScript: ${output.photoSheet = false}
+- runFlow:
+    when:
+      visible:
+        id: "chat_photo_input_sheet"
+    commands:
+      - evalScript: ${output.photoSheet = true}
+      - tapOn:
+          id: "chat_photo_input_camera_btn"
+- runFlow:
+    when:
+      true: ${!output.photoSheet}
+      visible:
+        text: ".*[Cc]amera.*"
+    commands:
+      - tapOn:
+          text: ".*[Cc]amera.*"
+
+# CAMERA runtime prompt on a fresh install
+- runFlow: ../../helpers/grant_runtime_permission.yaml
+
+# Tap shutter: any camera package's shutter_button id (AOSP camera2,
+# OPPO com.oplus.camera, ...), falling back to the text matcher
+- extendedWaitUntil:
+    visible:
+      id: ".*:id/shutter_button"
+    timeout: 10000
+    optional: true
+- evalScript: ${output.shutterTapped = false}
+- runFlow:
+    when:
+      visible:
+        id: ".*:id/shutter_button"
+    commands:
+      - evalScript: ${output.shutterTapped = true}
+      - tapOn:
+          id: ".*:id/shutter_button"
+- runFlow:
+    when:
+      true: ${!output.shutterTapped}
+      visible:
+        text: ".*[Ss]hutter.*"
+    commands:
+      - tapOn:
+          text: ".*[Ss]hutter.*"
+
+# Accept the captured photo: any camera package's done_button, or OK text
+- extendedWaitUntil:
+    visible:
+      id: ".*:id/done_button"
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: ".*:id/done_button"
+    commands:
+      - tapOn:
+          id: ".*:id/done_button"
+- runFlow:
+    when:
+      visible:
+        text: ".*OK.*"
+    commands:
+      - tapOn:
+          text: ".*OK.*"
+- runFlow:
+    when:
+      visible:
+          id: "done_button_bg"
+    commands: 
+        - tapOn:
+            id: "done_button_bg"
+
+# Back in FarmerChat with the photo attached — send it
+- waitForAnimationToEnd
+- runFlow: ../../helpers/composer_send.yaml
+
+# Wait for the answer to render (suggestions are the end-of-stream signal)
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 90000
+    speed: 40
+- assertVisible:
+    id: "chat_suggested_questions"

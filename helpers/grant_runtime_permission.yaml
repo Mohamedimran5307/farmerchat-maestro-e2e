@@ -1,0 +1,25 @@
+appId: ${APP_ID}
+---
+# ============================================================
+# GRANT A RUNTIME PERMISSION PROMPT (if one is showing)
+# ============================================================
+# Accepts the system RECORD_AUDIO / CAMERA / etc. dialog that appears
+# the first time a feature is used on a fresh install. No-op when no
+# prompt is up (CI pre-grants permissions). Prefers "While using the
+# app" (Android 11+), falls back to the single "Allow" button.
+# ============================================================
+
+- runFlow:
+    when:
+      visible:
+        id: "com.android.permissioncontroller:id/permission_allow_foreground_only_button"
+    commands:
+      - tapOn:
+          id: "com.android.permissioncontroller:id/permission_allow_foreground_only_button"
+- runFlow:
+    when:
+      visible:
+        id: "com.android.permissioncontroller:id/permission_allow_button"
+    commands:
+      - tapOn:
+          id: "com.android.permissioncontroller:id/permission_allow_button"

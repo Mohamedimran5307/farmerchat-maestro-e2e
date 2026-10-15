@@ -1,0 +1,63 @@
+appId: ${APP_ID}
+name: "TC10 - Drawer \"See All\" Opens Chat History Screen"
+# priority: P1
+# requires: PHONE_NUMBER,OTP_CODE
+# description: Verifies the chat history screen via the drawer's 'See all' entry: signs up, seeds chat history with a question, returns home, opens the drawer, opens chat history, and confirms the seeded conversation is listed; then taps the entry to reopen the conversation.
+tags:
+  - home
+  - chat
+  - regression
+  - critical
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+- runFlow: ../../helpers/full_signup.yaml
+
+# ── Ask a question to seed history ──
+- runFlow:
+    file: ../../helpers/compose_typed_question.yaml
+    env:
+      QUESTION_TEXT: "How to grow maize"
+
+# Wait for the answer to render fully (suggestions = end-of-stream signal)
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 90000
+    speed: 40
+
+# ── Close chat → back to home ──
+- tapOn:
+    id: "appbar_logo_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000
+
+# ── Drawer → See all (Chat History) ──
+- tapOn:
+    id: "home_hamburger_button"
+- extendedWaitUntil:
+    visible:
+      id: "drawer_see_all_btn"
+    timeout: 10000
+- tapOn:
+    id: "drawer_see_all_btn"
+
+- extendedWaitUntil:
+    visible:
+      id: "chat_history_screen"
+    timeout: 15000
+- assertVisible:
+    id: "chat_history_list"
+
+# ── Tap the seeded conversation ──
+- tapOn:
+    text: ".*maize.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "How to grow maize"
+    timeout: 30000

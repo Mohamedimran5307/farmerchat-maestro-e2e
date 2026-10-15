@@ -1,0 +1,41 @@
+appId: ${APP_ID}
+---
+# ============================================================
+# ENSURE SIGNED OUT → back on home_screen
+# ============================================================
+# Sign-up tests need a signed-out start, but the runner keeps app
+# state between tests, so an earlier sign-up leaves the user logged
+# in and the drawer's Sign Up entry disappears. This opens Settings
+# and, if settings_btn_auth reads "Logout", logs out and re-onboards;
+# otherwise it just returns home. Call it right after
+# complete_onboarding.
+# ============================================================
+
+- runFlow: navigate_to_settings.yaml
+
+- evalScript: ${output.wasSignedIn = false}
+- runFlow:
+    when:
+      visible:
+        id: "settings_btn_auth"
+        containsChild:
+          text: "Log ?out"
+    commands:
+      - evalScript: ${output.wasSignedIn = true}
+      - tapOn:
+          id: "settings_btn_auth"
+      - extendedWaitUntil:
+          visible:
+            id: "language_screen"
+          timeout: 15000
+      - runFlow: complete_onboarding.yaml
+
+- runFlow:
+    when:
+      true: ${!output.wasSignedIn}
+    commands:
+      - back
+      - extendedWaitUntil:
+          visible:
+            id: "home_screen"
+          timeout: 10000

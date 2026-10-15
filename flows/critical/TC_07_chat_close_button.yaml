@@ -1,0 +1,34 @@
+appId: ${APP_ID}
+name: "TC07 - Chat Back (←) Returns to Home"
+# priority: P1
+# description: Verifies the chat screen's close button: sends a typed question, waits for the AI answer to render, taps the appbar back (←) button, and confirms the user is returned to the home screen.
+tags:
+  - chat
+  - regression
+  - critical
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+- runFlow:
+    file: ../../helpers/compose_typed_question.yaml
+    env:
+      QUESTION_TEXT: "How to irrigate rice fields"
+
+# Wait for the answer to render (suggestions are the end-of-stream signal)
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 90000
+    speed: 40
+
+# Tap the appbar back arrow (appbar_logo_left_btn; was an X / chat_close_button
+# in older builds).
+- tapOn:
+    id: "appbar_logo_left_btn"
+
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000

@@ -1,0 +1,59 @@
+appId: ${APP_ID}
+name: "TC22 - Settings → Sign Up: Phone-Input Screen"
+# priority: P1
+# requires: PHONE_NUMBER,OTP_CODE
+# description: Verifies the sign-up entry point from the Settings screen: taps the auth entry (Sign Up label when signed out), traverses the optional account-benefits intermediate screen, and confirms the phone-input screen appears.
+tags:
+  - settings
+  - auth
+  - regression
+  - core
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+# Sign-up entry is only shown when signed out.
+- runFlow: ../../helpers/ensure_signed_out.yaml
+
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "home_hamburger_button"
+    direction: UP
+    timeout: 15000
+- tapOn:
+    id: "home_hamburger_button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "drawer_settings_btn"
+    timeout: 5000
+- tapOn:
+    id: "drawer_settings_btn"
+- extendedWaitUntil:
+    visible:
+      id: "settings_screen"
+    timeout: 5000
+
+# In the new APK both "Sign up" and "Logout" share the testTag
+# settings_btn_auth — the rendered text flips based on auth state.
+# When signed out (this TC starts there), tapping it leads to the
+# signup flow.
+- tapOn:
+    id: "settings_btn_auth"
+
+# Some builds insert an intermediate "account benefits" screen before
+# the phone-input page.
+- runFlow:
+    when:
+      visible:
+        id: "account_benefits_btn_signup"
+    commands:
+      - tapOn:
+          id: "account_benefits_btn_signup"
+
+- extendedWaitUntil:
+    visible:
+      id: "auth_screen"
+    timeout: 10000
+- assertVisible:
+    id: "auth_phone_input"

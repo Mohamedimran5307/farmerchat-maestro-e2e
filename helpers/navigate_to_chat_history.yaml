@@ -4,9 +4,9 @@ appId: ${APP_ID}
     file: open_drawer.yaml
 - extendedWaitUntil:
     visible:
-      id: "drawer_see_all_button"
+      id: "drawer_see_all_btn"
     timeout: 5000
 - tapOn:
-    id: "drawer_see_all_button"
+    id: "drawer_see_all_btn"
     optional: true
 - waitForAnimationToEnd

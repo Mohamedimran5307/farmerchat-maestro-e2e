@@ -1,0 +1,32 @@
+appId: ${APP_ID}
+---
+# ============================================================
+# TAP SEND ON THE COMPOSER
+# ============================================================
+# Once text (or a photo) is entered, Voice becomes Send. Tries the
+# "Send" content-desc (4.1.5 exposes no id yet — composer_send_button
+# is requested in TESTTAG_REQUESTS.md), then the legacy chat_send_btn.
+# Short settle timeout: the composer border animates continuously.
+# ============================================================
+
+- evalScript: ${output.composerSent = false}
+
+- runFlow:
+    when:
+      visible: "Send"
+    commands:
+      - evalScript: ${output.composerSent = true}
+      - tapOn:
+          text: "Send"
+          waitToSettleTimeoutMs: 500
+
+- runFlow:
+    when:
+      true: ${!output.composerSent}
+      visible:
+        id: "chat_send_btn"
+    commands:
+      - evalScript: ${output.composerSent = true}
+      - tapOn:
+          id: "chat_send_btn"
+- assertTrue: ${output.composerSent}

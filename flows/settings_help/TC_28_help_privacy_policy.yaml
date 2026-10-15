@@ -1,0 +1,45 @@
+appId: ${APP_ID}
+name: "TC28 - Help: Open Privacy Policy"
+# priority: P2
+# description: Verifies the Privacy Policy entry in the Help screen: opens Help from the drawer, taps the Privacy Policy entry, and confirms the legal document loads.
+# TODO: help_privacy_policy testTag and the "LAST UPDATED: DECEMBER 2025"
+# date string both carry over from the old APK. The date will need
+# bumping with each privacy-policy revision — consider replacing
+# with a stable "Privacy Policy" header assertion only.
+tags:
+  - help
+  - regression
+  - settings_help
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "home_hamburger_button"
+    direction: UP
+    timeout: 15000
+- tapOn:
+    id: "home_hamburger_button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "drawer_help_btn"
+    timeout: 5000
+- tapOn:
+    id: "drawer_help_btn"
+- extendedWaitUntil:
+    visible:
+      id: "help_screen"
+    timeout: 5000
+
+- tapOn:
+    id: "help_item_privacy"
+
+- extendedWaitUntil:
+    visible:
+      text: "Privacy Policy"
+    timeout: 15000
+- assertVisible:
+    text: "Privacy Policy"

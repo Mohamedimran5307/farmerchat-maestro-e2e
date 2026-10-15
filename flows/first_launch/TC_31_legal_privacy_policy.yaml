@@ -1,0 +1,57 @@
+appId: ${APP_ID}
+name: "TC31 - First-Launch: Verify Privacy Policy Link in Language-Screen Legal Text"
+# priority: P2
+# description: On the first-launch language screen, selects English (so the inline legal text renders in English), then verifies the language_legal_text TextView is rendered and the visible text contains "Privacy Policy".
+# Same caveat as TC30 — the embedded "Privacy Policy" link is a
+# Compose AnnotatedString span without its own accessibility node,
+# and a Maestro tap on the legal_text TextView does NOT route to the
+# span's click handler. Until the app team exposes each link as its
+# own clickable Composable with a dedicated testTag (e.g.
+# language_privacy_btn), this test is reduced from "open Privacy
+# dialog" to "verify the Privacy link is at least present in the
+# rendered legal text."
+tags:
+  - onboarding
+  - legal
+  - regression
+  - first_launch
+---
+- launchApp
+
+- runFlow:
+    when:
+      visible:
+        text: "Try again"
+    commands:
+      - tapOn: "Try again"
+
+- extendedWaitUntil:
+    visible:
+      id: "language_screen"
+    timeout: 30000
+
+# Pick English so the legal text renders in the language we can assert
+# against. The default-selected language varies by device locale.
+- extendedWaitUntil:
+    visible:
+      id: "language_item_${LANGUAGE_CODE}"
+    timeout: 5000
+- tapOn:
+    id: "language_item_${LANGUAGE_CODE}"
+
+- assertVisible:
+    id: "language_legal_text"
+- assertVisible:
+    id: "language_privacy_btn"
+- tapOn:
+    id: "language_privacy_btn"
+
+
+# Verify the Terms document opens. "Terms of Use" stays visible because
+# it's typically also the title of the opened document.
+- extendedWaitUntil:
+    visible:
+      text: "Privacy Policy"
+    timeout: 10000
+- assertVisible:
+    text: "Privacy Policy"

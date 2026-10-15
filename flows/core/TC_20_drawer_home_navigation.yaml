@@ -1,0 +1,53 @@
+appId: ${APP_ID}
+name: "TC20 - Drawer \"Home\" Returns From Help Screen"
+# priority: P2
+# description: Verifies the drawer's Home navigation entry from a non-home screen: navigates to Help from the drawer, then opens the drawer from inside Help and taps Home, confirming the user is returned to the home screen.
+# TODO: help_hamburger_button is the old APK's id for the hamburger
+# inside Help. The new APK likely reuses appbar_default_left_btn
+# (the generic appbar back/menu icon) or a dedicated help_appbar id.
+# Live-inspect Help and replace this id if needed.
+tags:
+  - navigation
+  - regression
+  - core
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+# Navigate from Home → Help via the drawer.
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "home_hamburger_button"
+    direction: UP
+    timeout: 15000
+- tapOn:
+    id: "home_hamburger_button"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "drawer_help_btn"
+    timeout: 5000
+- tapOn:
+    id: "drawer_help_btn"
+- extendedWaitUntil:
+    visible:
+      id: "help_screen"
+    timeout: 5000
+
+# Open the drawer from Help and tap Home to navigate back.
+- tapOn:
+    id: "appbar_default_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "drawer_home_btn"
+    timeout: 5000
+- tapOn:
+    id: "drawer_home_btn"
+
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 10000
+- assertVisible:
+    id: "home_screen"

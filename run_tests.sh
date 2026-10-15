@@ -114,8 +114,11 @@ echo -e "Tester: ${YELLOW}$TESTER_NAME${NC}"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # OPTIONAL TC FILTER (second arg, comma-separated)
+# Entries are TC ids or @<tag> (every flow carrying that Maestro tag).
 # Examples: ./run_tests.sh "Imran" TC03
 #           ./run_tests.sh "Imran" TC01,TC03
+#           ./run_tests.sh "Imran" @critical
+#           ./run_tests.sh "Imran" @critical,TC08
 # ─────────────────────────────────────────────────────────────────────────────
 TC_FILTER="${2:-}"
 if [ -n "$TC_FILTER" ]; then
@@ -332,6 +335,25 @@ harden_device_for_driver() {
   echo -e "  ${GREEN}✓ Driver packages exempted from battery/Doze/standby kills${NC}"
 }
 harden_device_for_driver
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PUSH THE GALLERY TEST IMAGE
+# Photo-from-gallery flows pick Pictures/farmerchat_test_tomato.jpg, so a
+# run never uploads a personal photo from the device. Re-pushed and
+# re-dated each run so it's the newest picture in either picker, then
+# media-scanned so the pickers can see it.
+# ─────────────────────────────────────────────────────────────────────────────
+push_gallery_test_image() {
+  local remote=/sdcard/Pictures/farmerchat_test_tomato.jpg
+  adb -s $DEVICE_ID shell "mkdir -p /sdcard/Pictures; rm -f $remote" 2>/dev/null
+  adb -s $DEVICE_ID push "$SCRIPT_DIR/test_assets/crop_disease.jpg" "$remote" >/dev/null 2>&1 || {
+    echo -e "  ${YELLOW}⚠ Could not push gallery test image — photo flows may fail${NC}"; return; }
+  adb -s $DEVICE_ID shell "touch $remote" 2>/dev/null
+  adb -s $DEVICE_ID shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d "file://$remote" >/dev/null 2>&1 || true
+  adb -s $DEVICE_ID shell content call --method scan_volume --uri content://media --arg external_primary >/dev/null 2>&1 || true
+  echo -e "  ${GREEN}✓ Gallery test image pushed${NC}"
+}
+push_gallery_test_image
 echo ""
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -506,6 +528,15 @@ setup_test() {
   adb -s $DEVICE_ID shell dumpsys deviceidle whitelist +dev.mobile.maestro.test >/dev/null 2>&1 || true
 
   adb -s $DEVICE_ID shell am force-stop $APP_ID 2>/dev/null
+  # Close the Files picker a failed photo test can leave in front. The
+  # media provider's photo picker is dismissed with Back instead: force-
+  # stopping that module drops /sdcard (FUSE) for a moment.
+  for pk in com.google.android.documentsui com.android.documentsui; do
+    adb -s $DEVICE_ID shell am force-stop $pk >/dev/null 2>&1
+  done
+  if adb -s $DEVICE_ID shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus | grep -qiE 'photopicker|providers\.media'; then
+    adb -s $DEVICE_ID shell input keyevent KEYCODE_BACK >/dev/null 2>&1
+  fi
   adb -s $DEVICE_ID shell "run-as $APP_ID sh -c 'rm -rf shared_prefs/* files/* cache/* databases/*'" 2>/dev/null || true
   adb -s $DEVICE_ID forward tcp:7001 tcp:7001 2>/dev/null
   sleep 2
@@ -521,20 +552,25 @@ setup_test() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# DISCOVER TEST CASES from flows/home/TC_<NN>_*.yaml
+# DISCOVER TEST CASES from flows/<batch>/TC_<NN>_*.yaml
+# Batches run in BATCH_DIRS order; TC numbers are globally sequential
+# across batches (critical = TC01–TC11, core = TC12–…), and every flow
+# also carries its batch name as a tag, so `@critical` selects a batch.
 # Each TC entry is built from the YAML front-matter:
 #   `name:`          → display name (required; fallback = filename)
 #   `# priority:`    → P0/P1/P2 comment in front-matter (default P1)
 #   `# description:` → comment in front-matter (default = name minus prefix)
-# Sorted by filename so TC_01_* runs before TC_02_* etc. Adding a new TC
-# means dropping a TC_<NN>_<slug>.yaml into flows/home/ — no edit here.
+# Sorted by filename within each batch. Adding a new TC means dropping a
+# TC_<NN>_<slug>.yaml into its batch folder — no edit here.
 # Multiple files can share the same leading NN (e.g. TC_09_gender_card_select
 # and TC_09_photo_question_gallery both group under TC_09); CLI filter
 # "TC_09" runs every file in the group.
 # Format kept identical to the old hardcoded array: TC_ID|FILE|NAME|DESC|PRIO
 # ─────────────────────────────────────────────────────────────────────────────
+BATCH_DIRS=(critical core settings_help first_launch offline)
 declare -a TEST_CASES=()
-for tc_path in "$SCRIPT_DIR"/flows/home/TC_[0-9]*_*.yaml; do
+declare -a TEST_TAGS=()   # parallel to TEST_CASES
+for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0-9]*_*.yaml 2>/dev/null; done); do
   [ -f "$tc_path" ] || continue
   tc_file=$(basename "$tc_path" .yaml)
   # TC_ID = "TC" + leading digits of filename, e.g. TC_05_… → TC05
@@ -550,10 +586,19 @@ for tc_path in "$SCRIPT_DIR"/flows/home/TC_[0-9]*_*.yaml; do
   tc_priority=""
   tc_desc=""
   tc_requires=""   # e.g. "LANGUAGE_CODE=en"
+  tc_tags=","      # ",home,regression,critical," — for @tag filtering
+  in_tags=0
 
   # Read front-matter only (stop at `---`).
   while IFS= read -r line || [ -n "$line" ]; do
     [ "$line" = "---" ] && break
+    if [[ "$line" =~ ^tags: ]]; then in_tags=1; continue; fi
+    if [ "$in_tags" = "1" ]; then
+      if [[ "$line" =~ ^[[:space:]]+-[[:space:]]*([^[:space:]]+) ]]; then
+        tc_tags="${tc_tags}${BASH_REMATCH[1]},"; continue
+      fi
+      in_tags=0
+    fi
     if [[ -z "$tc_name" && "$line" =~ ^name:[[:space:]]*\"?([^\"]*)\"?[[:space:]]*$ ]]; then
       tc_name="${BASH_REMATCH[1]}"
     elif [[ -z "$tc_priority" && "$line" =~ ^\#[[:space:]]*priority:[[:space:]]*([A-Z0-9]+)[[:space:]]*$ ]]; then
@@ -618,11 +663,12 @@ for tc_path in "$SCRIPT_DIR"/flows/home/TC_[0-9]*_*.yaml; do
   fi
 
   TEST_CASES+=("${tc_id}|${tc_file}|${display_name}|${tc_desc}|${tc_priority}")
+  TEST_TAGS+=("$tc_tags")
 done
 
 if [ ${#TEST_CASES[@]} -eq 0 ]; then
-  echo -e "${RED}ERROR: No test cases discovered under flows/home/${NC}"
-  echo "  Expected files matching: flows/home/TC<NN>_*.yaml"
+  echo -e "${RED}ERROR: No test cases discovered under flows/{${BATCH_DIRS[*]}}/${NC}"
+  echo "  Expected files matching: flows/<batch>/TC_<NN>_*.yaml"
   exit 1
 fi
 
@@ -632,13 +678,15 @@ fi
 if [ -n "$TC_FILTER" ]; then
   IFS=',' read -ra REQUESTED_TCS <<< "$TC_FILTER"
   declare -a FILTERED=()
-  for test_case in "${TEST_CASES[@]}"; do
+  for i in "${!TEST_CASES[@]}"; do
+    test_case="${TEST_CASES[$i]}"
     IFS='|' read -r TC_ID _REST <<< "$test_case"
     for req in "${REQUESTED_TCS[@]}"; do
       # Trim whitespace
       req="${req#"${req%%[![:space:]]*}"}"
       req="${req%"${req##*[![:space:]]}"}"
-      if [ "$TC_ID" = "$req" ]; then
+      if [ "$TC_ID" = "$req" ] || \
+         { [[ "$req" == @* ]] && [[ "${TEST_TAGS[$i]}" == *",${req#@},"* ]]; }; then
         FILTERED+=("$test_case")
         break
       fi
@@ -657,6 +705,14 @@ if [ -n "$TC_FILTER" ]; then
   TEST_CASES=("${FILTERED[@]}")
 fi
 TOTAL_COUNT=${#TEST_CASES[@]}
+
+# Resolve a TC file stem (e.g. TC_04_photo_query_gallery) to its batch path.
+tc_flow_path() {
+  local b
+  for b in "${BATCH_DIRS[@]}"; do
+    [ -f "$SCRIPT_DIR/flows/$b/$1.yaml" ] && { echo "$SCRIPT_DIR/flows/$b/$1.yaml"; return; }
+  done
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RUN TESTS
@@ -721,6 +777,11 @@ run_test_attempt() {
   local REC_ADB_PID=""
   if [ "$REC_ENABLED" = "1" ]; then
     adb -s $DEVICE_ID shell "rm -f $DEVICE_REC_PATH" 2>/dev/null
+    # Start each video from the phone's home screen (setup_test already
+    # force-stopped the app), so the previous test's last screen isn't
+    # on camera and the flow's launchApp shows the splash screen.
+    adb -s $DEVICE_ID shell input keyevent KEYCODE_HOME 2>/dev/null || true
+    sleep 2
     # --bit-rate keeps file size predictable (~3 MB / minute at 4 Mbps).
     # No --size: let screenrecord pick the device native aspect ratio.
     adb -s $DEVICE_ID shell screenrecord --bit-rate 4000000 --time-limit 180 "$DEVICE_REC_PATH" >/dev/null 2>&1 &
@@ -753,7 +814,7 @@ run_test_attempt() {
   TEST_OUTPUT=$(maestro --device $DEVICE_ID test \
     --debug-output "$DEBUG_DIR" \
     "${ENV_FLAGS[@]}" \
-    "$SCRIPT_DIR/flows/home/${TC_FILE}.yaml" 2>&1 \
+    "$(tc_flow_path "$TC_FILE")" 2>&1 \
     | tee /dev/fd/3; exit ${PIPESTATUS[0]})
 
   TEST_EXIT_CODE=$?

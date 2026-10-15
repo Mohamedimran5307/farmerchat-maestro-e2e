@@ -1,0 +1,42 @@
+appId: ${APP_ID}
+---
+# ============================================================
+# FOCUS THE COMPOSER TEXT FIELD (home or chat screen)
+# ============================================================
+# The composer ([Camera] [field] [Voice]) replaced the old
+# Photo/Speak/Type trio, but it sits behind a remote flag, so this
+# tries, in order:
+#   1. the placeholder text (4.1.5 exposes no id on the field yet —
+#      composer_text_field is requested in TESTTAG_REQUESTS.md)
+#   2. legacy primary_input_type_btn → chat_text_input
+# The composer border animates continuously, so taps use a short
+# settle timeout instead of waiting for a static screen.
+# ============================================================
+
+- evalScript: ${output.composerFocused = false}
+
+- runFlow:
+    when:
+      visible: "Ask about your farm..."
+    commands:
+      - evalScript: ${output.composerFocused = true}
+      - tapOn:
+          text: "Ask about your farm..."
+          waitToSettleTimeoutMs: 500
+
+- runFlow:
+    when:
+      true: ${!output.composerFocused}
+      visible:
+        id: "primary_input_type_btn"
+    commands:
+      - evalScript: ${output.composerFocused = true}
+      - tapOn:
+          id: "primary_input_type_btn"
+      - extendedWaitUntil:
+          visible:
+            id: "chat_text_input"
+          timeout: 5000
+      - tapOn:
+          id: "chat_text_input"
+- assertTrue: ${output.composerFocused}

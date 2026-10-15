@@ -3,53 +3,48 @@ appId: ${APP_ID}
 # ============================================================
 # SYSTEM POPUP HANDLER
 # Handles dev.mobile.maestro installation popups on Android devices
-# Include this at the START of any flow that might see system popups
+# Include this at the START of any flow that might see system popups.
+# These only appear the first time Maestro installs its driver, so a
+# single check gates the whole sequence (one lookup on every other run).
 # ============================================================
 
-# Handle "Continue installation" button for first Maestro APK
 - runFlow:
     when:
       visible:
         text: "Continue installation"
     commands:
+      # First Maestro APK, then the OEM "done" sheet (OPPO/realme id, or text)
       - tapOn: "Continue installation"
-
-# Handle Close button after installation (bottom button with id)
-- runFlow:
-    when:
-      visible:
-        id: "com.oplus.stdsp:id/btn_finish"
-    commands:
-      - tapOn:
-          id: "com.oplus.stdsp:id/btn_finish"
-
-# Handle Close button by text (backup)
-- runFlow:
-    when:
-      visible:
-        text: "Close"
-    commands:
-      - tapOn: "Close"
-
-# Handle second Maestro APK popup (dev.mobile.maestro.test)
-- runFlow:
-    when:
-      visible:
-        text: "Continue installation"
-    commands:
-      - tapOn: "Continue installation"
-
-- runFlow:
-    when:
-      visible:
-        id: "com.oplus.stdsp:id/btn_finish"
-    commands:
-      - tapOn:
-          id: "com.oplus.stdsp:id/btn_finish"
-
-- runFlow:
-    when:
-      visible:
-        text: "Close"
-    commands:
-      - tapOn: "Close"
+      - runFlow:
+          when:
+            visible:
+              id: "com.oplus.stdsp:id/btn_finish"
+          commands:
+            - tapOn:
+                id: "com.oplus.stdsp:id/btn_finish"
+      - runFlow:
+          when:
+            visible:
+              text: "Close"
+          commands:
+            - tapOn: "Close"
+      # Second Maestro APK (dev.mobile.maestro.test)
+      - runFlow:
+          when:
+            visible:
+              text: "Continue installation"
+          commands:
+            - tapOn: "Continue installation"
+            - runFlow:
+                when:
+                  visible:
+                    id: "com.oplus.stdsp:id/btn_finish"
+                commands:
+                  - tapOn:
+                      id: "com.oplus.stdsp:id/btn_finish"
+            - runFlow:
+                when:
+                  visible:
+                    text: "Close"
+                commands:
+                  - tapOn: "Close"

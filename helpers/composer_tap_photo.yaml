@@ -1,0 +1,40 @@
+appId: ${APP_ID}
+---
+# ============================================================
+# TAP THE COMPOSER CAMERA BUTTON
+# ============================================================
+# Opens chat_photo_input_sheet (Camera / Photos). Tries the "Camera"
+# content-desc (4.1.5 exposes no id yet — composer_photo_button is
+# requested in TESTTAG_REQUESTS.md), then the legacy
+# primary_input_photo_btn. Short settle timeout: the composer border
+# animates continuously.
+# ============================================================
+
+- evalScript: ${output.composerPhoto = false}
+
+- runFlow:
+    when:
+      visible: "Camera"
+    commands:
+      - evalScript: ${output.composerPhoto = true}
+      - tapOn:
+          text: "Camera"
+          waitToSettleTimeoutMs: 500
+
+- runFlow:
+    when:
+      true: ${!output.composerPhoto}
+      visible:
+        id: "primary_input_photo_btn"
+    commands:
+      - evalScript: ${output.composerPhoto = true}
+      - tapOn:
+          id: "primary_input_photo_btn"
+- assertTrue: ${output.composerPhoto}
+
+# Let the in-app sheet come up (absent on the legacy UI → optional).
+- extendedWaitUntil:
+    visible:
+      id: "chat_photo_input_sheet"
+    timeout: 3000
+    optional: true

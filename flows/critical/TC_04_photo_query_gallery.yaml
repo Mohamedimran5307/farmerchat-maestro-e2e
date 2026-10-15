@@ -1,0 +1,72 @@
+appId: ${APP_ID}
+name: "TC04 - Photo Question from Gallery → AI Response"
+# priority: P1
+# description: Verifies the photo-based chat flow via the system gallery picker: taps the composer Camera button, picks Photos, selects the test image (farmerchat_test_tomato.jpg, pushed by the runner), sends it as a chat question, and confirms an AI answer renders with its suggested-questions block.
+# Needs the runner to push test_assets/crop_disease.jpg to the device as
+# Pictures/farmerchat_test_tomato.jpg first, so the test never uploads a
+# personal photo and always asks about the same known image.
+tags:
+  - home
+  - chat
+  - regression
+  - critical
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+# Tap the composer Camera button → in-app Camera/Photos sheet, then
+# pick Photos (gallery). The sheet is skipped on the legacy UI.
+- runFlow: ../../helpers/composer_tap_photo.yaml
+- runFlow:
+    when:
+      visible:
+        id: "chat_photo_input_sheet"
+    commands:
+      - tapOn:
+          id: "chat_photo_input_gallery_btn"
+
+# Android opens one of two pickers depending on the device:
+#   - Files (documentsui, e.g. Vivo): "Recent images" grid, items labelled
+#     "<file name>, <size>, <date>" → pick the test image by name.
+#   - Photo picker (e.g. OPPO): "Photo taken on …" thumbnails, newest
+#     first → the freshly pushed test image is the first one.
+- extendedWaitUntil:
+    visible:
+      text: "(farmerchat_test_tomato.*|Photo taken on.*)"
+    timeout: 15000
+- evalScript: ${output.photoPicked = false}
+- runFlow:
+    when:
+      visible:
+        text: "farmerchat_test_tomato.*"
+    commands:
+      - evalScript: ${output.photoPicked = true}
+      - tapOn:
+          text: "farmerchat_test_tomato.*"
+- runFlow:
+    when:
+      true: ${!output.photoPicked}
+      visible:
+        text: "Photo taken on.*"
+    commands:
+      - evalScript: ${output.photoPicked = true}
+      - tapOn:
+          text: "Photo taken on.*"
+          index: 0
+- assertTrue: ${output.photoPicked}
+
+# Back in the app's composer with the photo attached — send it.
+- extendedWaitUntil:
+    visible: "Send"
+    timeout: 15000
+- runFlow: ../../helpers/composer_send.yaml
+
+# Wait for the AI answer. chat_suggested_questions appears only after
+# the answer fully streams in.
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 90000
+    speed: 40

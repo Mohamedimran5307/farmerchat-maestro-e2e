@@ -12,7 +12,11 @@ Maestro_automation_FarmerChat_End_to_End_Flow/
 │   ├── env.local.example.yaml    # Template for secrets — copy to env.local.yaml
 │   └── env.local.yaml            # Gitignored secrets (PHONE_NUMBER, OTP_CODE); overrides env.yaml
 ├── flows/
-│   ├── home/                     # The live suite: TC_NN_*.yaml (sequential TC_01–TC_35)
+│   ├── critical/                 # Batch 1: TC01–TC11 — core positive flows
+│   ├── core/                     # Batch 2: TC12–TC23 — secondary positive flows
+│   ├── settings_help/            # Batch 3: TC24–TC28
+│   ├── first_launch/             # Batch 4: TC29–TC32
+│   ├── offline/                  # Batch 5: TC33–TC36 (airplane-mode error + retry)
 │   └── onboarding/               # Legacy flows — NOT run by the runners
 ├── helpers/                      # Reusable sub-flows invoked via runFlow:
 │   ├── launch_app.yaml
@@ -21,12 +25,18 @@ Maestro_automation_FarmerChat_End_to_End_Flow/
 │   ├── full_signup.yaml
 │   ├── grant_location.yaml
 │   ├── dismiss_system_popup.yaml
+│   ├── ensure_signed_out.yaml    # Logs out first if a previous test left the user signed in
+│   ├── composer_*.yaml           # Focus / Send / Camera / Voice on the composer bar
+│   ├── grant_runtime_permission.yaml
+│   ├── feed_fingerprint.yaml     # Detects the end of the home feed (no end-of-feed marker needed)
 │   └── navigate_to_*.yaml
 ├── run_tests.sh                  # The test runner (driver mgmt, retry, video, reports) — used locally and in CI
 ├── scripts/
 │   ├── run_failed.sh             # Re-run only previously failed TCs
 │   └── report_style.css          # HTML report styling
 ├── device-farm/                  # Run the suite on a physical USB device
+├── test_assets/crop_disease.jpg  # Gallery test image (pushed to the device by the runner)
+├── TESTTAG_REQUESTS.md           # testTag / accessibility requests for the app team
 ├── app.apk                       # App under test (tracked via git LFS)
 ├── reports/                      # Generated HTML/JSON reports (gitignored)
 └── README.md
@@ -59,14 +69,18 @@ Maestro_automation_FarmerChat_End_to_End_Flow/
 ## Running tests
 
 `run_tests.sh` is the single entry point for running the suite — locally and in CI. It discovers
-every `flows/home/TC_NN_*.yaml`, loads env config, retries each test up to 3 times, captures video +
-debug output, and generates an HTML/JSON report under `reports/`. It does not clear app state
-between tests; it relies on the idempotent `complete_onboarding.yaml` helper.
+every `flows/<batch>/TC_NN_*.yaml` (batches in order: critical, core, settings_help, first_launch,
+offline), loads env config, retries each test up to 3 times, captures video + debug output, and
+generates an HTML/JSON report under `reports/`. It does not clear app state between tests; it relies
+on the idempotent `complete_onboarding.yaml` helper, and sign-up tests log out first via
+`ensure_signed_out.yaml`. Each video starts from the phone's home screen, and the gallery test image
+is pushed to the device once per run so no personal photo is ever uploaded.
 
 ```bash
 ./run_tests.sh "Imran"            # tester name; run the whole suite
 ./run_tests.sh "Imran" TC01       # single test by ID (not filename)
 ./run_tests.sh "Imran" TC01,TC03  # comma-separated subset
+./run_tests.sh "Imran" @critical  # one batch (or any tag); mix with ids: @critical,TC13
 ```
 
 ### Run a single flow directly with Maestro
@@ -74,7 +88,7 @@ between tests; it relies on the idempotent `complete_onboarding.yaml` helper.
 Flows interpolate `${...}` variables, so env flags are required:
 
 ```bash
-maestro --device emulator-5554 test flows/home/TC_01_weather_widget_location.yaml \
+maestro --device emulator-5554 test flows/critical/TC_01_weather_widget_location.yaml \
   -e APP_ID=org.digitalgreen.farmer.chat -e LANGUAGE_CODE=en -e USER_NAME="Test Farmer"
 ```
 
@@ -103,22 +117,49 @@ tags:
 
 ## Test coverage
 
-The live suite lives entirely in `flows/home/`. Tests are tagged by functional area; every test
-also carries `regression`. Tests are numbered sequentially **TC01–TC35**.
+Tests are grouped into batches (one folder each) and numbered **TC01–TC36** in batch order. Every
+test is tagged with its batch name, its functional area, and `regression`.
 
-| Area              | Tags                | Example TCs                                  |
-|-------------------|---------------------|----------------------------------------------|
-| Home feed         | `home`, `onboarding`| TC01, TC03–05, TC07, TC19, TC24              |
-| Chat & AI         | `chat`              | TC02, TC06, TC08–09, TC23, TC25, TC33        |
-| Settings          | `settings`          | TC10–13, TC22                                |
-| Sign-up / Auth    | `auth`              | TC04, TC07, TC12–14, TC20–22, TC32           |
-| Navigation/Drawer | `navigation`        | TC14, TC18, TC21, TC34                       |
-| Help              | `help`              | TC15–17                                      |
-| Legal (1st launch)| `legal`             | TC26–27, TC35                                |
-| Error recovery    | `error`             | TC29–TC32                                    |
-| Camera            | `camera`            | TC28                                         |
+| Batch | ID | Test | Priority |
+|---|---|---|---|
+| `critical` | TC01 | Location-Based Personalization via Weather Widget | P0 |
+| `critical` | TC02 | Type a Question → AI Response with Suggestions | P0 |
+| `critical` | TC03 | Home Feed Scrolls + Opens a Card's Chat | P1 |
+| `critical` | TC04 | Photo Question from Gallery → AI Response | P1 |
+| `critical` | TC05 | Listen to AI Response (TTS Playback) | P0 |
+| `critical` | TC06 | Speak Button Opens Voice-Input Overlay | P2 |
+| `critical` | TC07 | Chat Back (←) Returns to Home | P1 |
+| `critical` | TC08 | Full Sign Up via Drawer (Phone + OTP → Home) | P0 |
+| `critical` | TC09 | Full Sign Up via Settings (Phone + OTP → Signed In) | P0 |
+| `critical` | TC10 | Drawer "See All" Opens Chat History Screen | P1 |
+| `critical` | TC11 | Sign Up + Logout via Settings | P0 |
+| `core` | TC12 | Chat Follow-up via Suggested Question Tap | P0 |
+| `core` | TC13 | Share AI Response via System Chooser | P1 |
+| `core` | TC14 | Save AI Response Shows Confirmation | P2 |
+| `core` | TC15 | Photo Question from Camera → AI Response | P2 |
+| `core` | TC16 | Gender Card Renders After Sign-Up + Location | P1 |
+| `core` | TC17 | Crops Card Renders After Sign-Up + Location | P1 |
+| `core` | TC18 | Answer Gender Profile-Prompt Card | P2 |
+| `core` | TC19 | Drawer: Change Language | P2 |
+| `core` | TC20 | Drawer "Home" Returns From Help Screen | P2 |
+| `core` | TC21 | Drawer → Sign Up: Phone-Input Screen | P1 |
+| `core` | TC22 | Settings → Sign Up: Phone-Input Screen | P1 |
+| `core` | TC23 | Settings → Sign Up → Skip Returns to Settings | P2 |
+| `settings_help` | TC24 | Settings: Toggle Display Mode (Day / Night / Auto) | P2 |
+| `settings_help` | TC25 | Settings: Update Display Name | P2 |
+| `settings_help` | TC26 | Help: FAQ Accordion Expands With Answer | P2 |
+| `settings_help` | TC27 | Help: Open Terms of Use | P2 |
+| `settings_help` | TC28 | Help: Open Privacy Policy | P2 |
+| `first_launch` | TC29 | Location Interstitial: Skip Returns to Home | P2 |
+| `first_launch` | TC30 | First-Launch: Open Terms of Use from Language Screen | P2 |
+| `first_launch` | TC31 | First-Launch: Verify Privacy Policy Link in Language-Screen Legal Text | P2 |
+| `first_launch` | TC32 | First-Launch: Verify Both Legal Links in Language-Screen Legal Text | P2 |
+| `offline` | TC33 | No-Internet Error Screen Asserts on Cold Start | P2 |
+| `offline` | TC34 | No-Internet Error: Retry Recovers to Language Screen | P2 |
+| `offline` | TC35 | Chat Offline: Inline Error + Retry Recovers | P2 |
+| `offline` | TC36 | Chat History Offline: Error + Retry Loads History | P2 |
 
-> The offline-network tests (TC29–TC32) are self-contained: each toggles the radio in-flow via
+> The offline-network tests (TC33–TC36) are self-contained: each toggles the radio in-flow via
 > `setAirplaneMode` and drives its own retry/recovery — no manual network toggling, no required order.
 
 ## Reports

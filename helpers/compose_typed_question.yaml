@@ -3,9 +3,9 @@ appId: ${APP_ID}
 # ============================================================
 # COMPOSE A TYPED QUESTION → send
 # ============================================================
-# Opens the Type input bar from home, types ${QUESTION_TEXT}, hides
-# the IME so chat_send_btn isn't occluded on cramped displays, and
-# taps Send. Caller is responsible for waiting on the AI answer
+# Focuses the composer text field (home or chat screen), types
+# ${QUESTION_TEXT}, hides the IME so Send isn't occluded on cramped
+# displays, and taps Send. Caller is responsible for waiting on the AI answer
 # (e.g. scrollUntilVisible chat_suggested_questions) afterwards.
 #
 # QUESTION_TEXT is passed by the caller via runFlow env:
@@ -15,20 +15,7 @@ appId: ${APP_ID}
 #         QUESTION_TEXT: "How to grow maize"
 # ============================================================
 
-- tapOn:
-    id: "primary_input_type_btn"
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: "chat_text_input"
-    timeout: 5000
-- tapOn:
-    id: "chat_text_input"
+- runFlow: composer_focus_text.yaml
 - inputText: "${QUESTION_TEXT}"
 - hideKeyboard
-- extendedWaitUntil:
-    visible:
-      id: "chat_send_btn"
-    timeout: 5000
-- tapOn:
-    id: "chat_send_btn"
+- runFlow: composer_send.yaml
