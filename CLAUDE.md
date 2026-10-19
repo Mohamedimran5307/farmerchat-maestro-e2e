@@ -138,9 +138,23 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   which varies by language. Use the Maestro MCP tools (`list_devices` → `inspect_screen` → `run`)
   to validate against a running emulator.
 - AI answers: after sending (or opening a card/weather chat) use `helpers/wait_for_answer.yaml`. It
-  waits up to 90s for the suggestions block, fails on the inline error (`chat_retry_btn`) and fails if
-  the answer took longer than `ANSWER_SLA_MS` (`config/env.yaml`). It needs `output.tSend`
-  (`composer_send.yaml` sets it); set `output.answerLabel` to name the latency in the report.
+  watches the "Getting your …" loader **without scrolling** (whatever arrives — a chip card or the
+  answer — lands in view top-first), taps chips where they land, and scrolls down only once a
+  finished answer is there. It completes on the Share/Listen row or the suggestions, and fails on the
+  inline error (`chat_retry_btn`), on the "Sorry, I had a problem just now" failure reply (it looks
+  like a normal answer), on an answer without real text, and if the answer took longer than
+  `ANSWER_SLA_MS` (`config/env.yaml`). It needs `output.tSend` (`composer_send.yaml` sets it); set
+  `output.answerLabel` to name the latency in the report.
+- After an answer, chat tests assert the **Share button** and the **follow-up questions**
+  (`chat_suggested_questions`): a `scrollUntilVisible` to each, followed by an explicit
+  `assertVisible` with a readable label. Only FC-CHAT-01 (TC03) taps a suggestion, via
+  `helpers/followup_via_suggestion.yaml`.
+- Chat tests check **functionality only** — every action is echoed as the user's message, every
+  turn completes. Never assert what the AI says (crop, relevance, place names): that's covered by
+  the separate evals project.
+- **Tags only:** when a check fails because a testTag is missing or drops out, don't work around it
+  in the flow (no switching to text) — list it with the evidence in `TESTTAG_REQUESTS_CRITICAL.md`
+  for the developer.
 - Guard optional/OEM-specific UI (permission dialogs, "Try again" error screens) with
   `runFlow: { when: { visible: ... } }` blocks, as `complete_onboarding.yaml` does. When several
   fallback tiers could all match, set an `output.*` flag in the first tier that fires and gate the
@@ -153,8 +167,10 @@ show confirmation chips after it (save crop, gender) instead of suggestions. `AG
 `config/env.yaml` marks an agentic APK (enables FC-AGENT-01, which *requires* a clarification);
 set it false for a non-agentic APK. Always wait for
 answers with `helpers/wait_for_answer.yaml` (handles both build types; taps the first chip of any
-clarification/confirmation) and never require `chat_suggested_questions` — follow-ups only via a
-suggestion when one is offered. Each Maestro check on an absent element costs ~3.5s here, so keep
+clarification — except the photo card, where it's always "Continue without one" — and of any
+confirmation, and checks every chip choice is echoed). On agentic builds the suggestions come after
+any confirmation card, at the end of the chat, so scroll down to them before asserting them; never
+type a follow-up. Each Maestro check on an absent element costs ~3.5s here, so keep
 `runFlow when` / optional checks to a minimum. Details in `docs/TEST_STRATEGY.md` §3a. Test APKs come from fc-compose
 `feature/dev-v2.5-mux-video` until a dedicated Maestro testTags branch exists.
 
@@ -175,5 +191,7 @@ suggestion when one is offered. Each Maestro check on an absent element costs ~3
 - `copyTextFrom` / `below` / `above` return the **first match in hierarchy order**, not the nearest.
 - The answer's Share/Listen row intermittently drops out of the accessibility tree (Listen missing,
   Share shrunk) — an app bug still present in 4.1.7; FC-TTS-01 (Listen) is quarantined because of it.
+  The same bug also collapses suggestion rows, drops the Listen state tags and, during loading,
+  the `chat_user_message` tag (details in `TESTTAG_REQUESTS_CRITICAL.md`).
 - Some devices (e.g. Vivo) open the **Files** picker for the gallery, others the Photo picker; FC-PHOTO-01
   handles both. OPPO/ColorOS has no `screenrecord`, so it can't record video.
