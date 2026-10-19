@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+name: "TC34 - No-Internet Error Screen Asserts on Cold Start"
+# id: FC-ERR-01
+# priority: P2
+# description: Self-contained assertion that the global no-internet error screen renders on a cold start while offline. Enables airplane mode, clears state, cold-starts the app, and asserts the error screen with its "Try again" button. Restores connectivity at the end so the suite continues online. Network toggling is driven entirely by Maestro (setAirplaneMode) — no manual intervention.
+tags:
+  - error
+  - regression
+  - offline
+---
+# Go fully offline, then cold-start so the launch hits the global no-internet error.
+- setAirplaneMode: enabled
+# - clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "error_screen"
+    timeout: 30000
+- assertVisible:
+    id: "error_btn_try_again"
+# Restore connectivity so subsequent tests start online.
+- setAirplaneMode: disabled

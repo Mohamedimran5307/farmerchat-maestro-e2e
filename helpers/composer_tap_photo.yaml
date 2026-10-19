@@ -3,22 +3,23 @@ appId: ${APP_ID}
 # ============================================================
 # TAP THE COMPOSER CAMERA BUTTON
 # ============================================================
-# Opens chat_photo_input_sheet (Camera / Photos). Tries the "Camera"
-# content-desc (4.1.5 exposes no id yet — composer_photo_button is
-# requested in TESTTAG_REQUESTS.md), then the legacy
-# primary_input_photo_btn. Short settle timeout: the composer border
-# animates continuously.
+# Opens chat_photo_input_sheet (Camera / Photos).
+# Tries, in order: the composer testTag (composer_photo_button, 4.1.7+), the
+# legacy primary_input_photo_btn (old Photo/Speak/Type UI behind a remote flag),
+# then the "Camera" label (older 4.1.x builds without the tag).
+# Short settle timeout: the composer border animates continuously.
 # ============================================================
 
 - evalScript: ${output.composerPhoto = false}
 
 - runFlow:
     when:
-      visible: "Camera"
+      visible:
+        id: "composer_photo_button"
     commands:
       - evalScript: ${output.composerPhoto = true}
       - tapOn:
-          text: "Camera"
+          id: "composer_photo_button"
           waitToSettleTimeoutMs: 500
 
 - runFlow:
@@ -30,6 +31,16 @@ appId: ${APP_ID}
       - evalScript: ${output.composerPhoto = true}
       - tapOn:
           id: "primary_input_photo_btn"
+
+- runFlow:
+    when:
+      true: ${!output.composerPhoto}
+      visible: "Camera"
+    commands:
+      - evalScript: ${output.composerPhoto = true}
+      - tapOn:
+          text: "Camera"
+          waitToSettleTimeoutMs: 500
 - assertTrue: ${output.composerPhoto}
 
 # Let the in-app sheet come up (absent on the legacy UI → optional).

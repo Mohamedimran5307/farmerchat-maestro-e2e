@@ -1,0 +1,62 @@
+appId: ${APP_ID}
+name: "TC03 - Typed Question → Answer → Follow-up → Back to Home"
+# id: FC-CHAT-01
+# priority: P0
+# description: The core chat journey, functional only (what the AI says is covered by the evals project), on non-agentic and agentic builds. Types a question and sends it (it must appear as the user's message), taps the first chip of any clarification (each choice must be echoed), and checks a complete answer arrives (action row or suggestions, no inline error or failure reply, real text, within ANSWER_SLA_MS); any confirmation card's first chip is tapped and echoed, and the answer must show its Share button and the follow-up questions. Then taps the first suggestion: it must be sent as the user's message and a complete follow-up answer must arrive (none offered → warning). Returns home via the back arrow.
+tags:
+  - home
+  - chat
+  - regression
+  - smoke
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+- runFlow: ../../helpers/composer_focus_text.yaml
+- inputText: "What type of fertilizer should I use for tomatoes for better growth and yield?"
+- hideKeyboard
+- runFlow: ../../helpers/composer_send.yaml
+- extendedWaitUntil:
+    visible:
+      id: "chat_user_message"
+      containsDescendants:
+        - text: "What type of fertilizer should I use for tomatoes for better growth and yield\\?"
+    timeout: 5000
+    label: "Question sent as the user's message"
+- evalScript: ${output.answerLabel = 'first_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+
+# The answer ends with its action row and the follow-up questions
+# (on agentic builds they come after any confirmation card, at the end).
+- scrollUntilVisible:
+    centerElement: true
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 15000
+    label: "Scroll to the follow-up questions"
+- assertVisible:
+    id: "chat_suggested_questions"
+    label: "Follow-up questions shown after the answer"
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_share_btn"
+    direction: UP
+    timeout: 10000
+    label: "Scroll to the Share button"
+- assertVisible:
+    id: "chat_share_btn"
+    label: "Share button shown on the answer"
+
+# Follow-up through the first suggested question (after any confirmation,
+# the suggestions appear at the end of the chat).
+- runFlow: ../../helpers/followup_via_suggestion.yaml
+
+# Back arrow returns to home.
+- tapOn:
+    id: "appbar_logo_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000

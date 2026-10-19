@@ -1,0 +1,65 @@
+appId: ${APP_ID}
+name: "TC02 - Agentic: Vague Question → Clarification → Answer"
+# id: FC-AGENT-01
+# priority: P0
+# requires: AGENTIC=true
+# description: Positive proof that the agentic chat works. From a clean install (no crop, no location known), sends a deliberately vague question (it must appear as the user's message) and REQUIRES the agent to ask a clarification card instead of answering blindly — fails if it never asks. Taps the first chip of each card (photo card: Continue without one); every choice must be echoed as the user's message. Then a complete answer must arrive (action row, no inline error or failure reply, real text, within ANSWER_SLA_MS); any confirmation card's first chip is tapped and echoed, and the answer must show its Share button and the follow-up questions. Functional only — what the AI says is covered by the evals project.
+tags:
+  - chat
+  - regression
+  - smoke
+---
+# Clean state so the agent can't fill the gaps from a saved profile.
+- launchApp:
+    clearState: true
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+- runFlow: ../../helpers/composer_focus_text.yaml
+- inputText: "How do I control pests on my farm?"
+- hideKeyboard
+- runFlow: ../../helpers/composer_send.yaml
+- extendedWaitUntil:
+    visible:
+      id: "chat_user_message"
+      containsDescendants:
+        - text: "How do I control pests on my farm\\?"
+    timeout: 10000
+    label: "Question sent as the user's message"
+
+# The agent must ask before answering (no crop/location context given).
+- extendedWaitUntil:
+    visible:
+      text: "Choose one|Don't see your option.*|Share location|Add one clear photo.*"
+    timeout: 60000
+    label: "Agent asked a clarification for a vague question"
+
+# Tap first chips until the answer comes.
+- evalScript: ${output.answerLabel = 'agentic_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+- assertTrue:
+    condition: ${output.clarifications >= 1}
+    label: "At least one clarification was answered before the answer"
+
+# The answer ends with its action row and the follow-up questions
+# ("You can also ask"; on agentic builds they come after any
+# confirmation card, at the end of the chat).
+- scrollUntilVisible:
+    centerElement: true
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 15000
+    label: "Scroll to the follow-up questions"
+- assertVisible:
+    id: "chat_suggested_questions"
+    label: "Follow-up questions shown after the answer"
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_share_btn"
+    direction: UP
+    timeout: 10000
+    label: "Scroll to the Share button"
+- assertVisible:
+    id: "chat_share_btn"
+    label: "Share button shown on the answer"

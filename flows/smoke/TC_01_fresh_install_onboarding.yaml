@@ -1,0 +1,55 @@
+appId: ${APP_ID}
+name: "TC01 - Fresh Install: Language → Home → Feed Loads"
+# id: FC-ONB-01
+# priority: P0
+# description: A brand-new user's first launch. Clears all app data, expects the language screen, picks the configured language, starts the app (allowing the notification prompt if shown), and confirms home renders with the weather button, the composer and at least one feed card. Fails on the no-internet screen instead of retrying past it.
+tags:
+  - onboarding
+  - regression
+  - smoke
+---
+# Fresh install state: no data, no session, no onboarding done.
+- launchApp:
+    clearState: true
+
+# First screen must be the language picker (not home, not an error).
+- extendedWaitUntil:
+    visible:
+      id: "language_screen"
+    timeout: 20000
+- assertNotVisible:
+    id: "error_screen"
+    label: "No error screen on first launch"
+
+# On a fresh install the list is fetched from the server first ("FarmerChat
+# is Starting..." spinner) — allow for a slow first load.
+- extendedWaitUntil:
+    visible:
+      id: "language_item_${LANGUAGE_CODE}"
+    timeout: 30000
+- tapOn:
+    id: "language_item_${LANGUAGE_CODE}"
+- extendedWaitUntil:
+    visible:
+      id: "language_start_button"
+    timeout: 5000
+- tapOn:
+    id: "language_start_button"
+
+# Android 13+ asks for notifications right after onboarding.
+- runFlow: ../../helpers/grant_runtime_permission.yaml
+
+# Home with its core pieces, and the feed actually loaded.
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 20000
+- assertVisible:
+    id: "home_weather_button"
+- assertVisible:
+    id: "composer_text_field"
+    label: "Composer is shown"
+- extendedWaitUntil:
+    visible:
+      id: "content_card_start_chat_btn_[0-9]+"
+    timeout: 20000

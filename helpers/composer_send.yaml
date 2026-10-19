@@ -3,9 +3,10 @@ appId: ${APP_ID}
 # ============================================================
 # TAP SEND ON THE COMPOSER
 # ============================================================
-# Once text (or a photo) is entered, Voice becomes Send. Tries the
-# "Send" content-desc (4.1.5 exposes no id yet — composer_send_button
-# is requested in TESTTAG_REQUESTS.md), then the legacy chat_send_btn.
+# Once text (or a photo) is entered, Voice becomes Send.
+# Tries, in order: the composer testTag (composer_send_button, 4.1.7+), the
+# legacy chat_send_btn (old Photo/Speak/Type UI behind a remote flag),
+# then the "Send" label (older 4.1.x builds without the tag).
 # Short settle timeout: the composer border animates continuously.
 # ============================================================
 
@@ -13,11 +14,12 @@ appId: ${APP_ID}
 
 - runFlow:
     when:
-      visible: "Send"
+      visible:
+        id: "composer_send_button"
     commands:
       - evalScript: ${output.composerSent = true}
       - tapOn:
-          text: "Send"
+          id: "composer_send_button"
           waitToSettleTimeoutMs: 500
 
 - runFlow:
@@ -29,4 +31,16 @@ appId: ${APP_ID}
       - evalScript: ${output.composerSent = true}
       - tapOn:
           id: "chat_send_btn"
+
+- runFlow:
+    when:
+      true: ${!output.composerSent}
+      visible: "Send"
+    commands:
+      - evalScript: ${output.composerSent = true}
+      - tapOn:
+          text: "Send"
+          waitToSettleTimeoutMs: 500
 - assertTrue: ${output.composerSent}
+# Send time for wait_for_answer.yaml's latency check.
+- evalScript: ${output.tSend = Date.now()}

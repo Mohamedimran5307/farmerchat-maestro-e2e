@@ -1,0 +1,165 @@
+appId: ${APP_ID}
+---
+# ============================================================
+# WAIT FOR THE AI ANSWER (non-agentic + agentic) → check, time it
+# ============================================================
+# Call right after a question is sent (or a card / weather chat is
+# opened). Needs output.tSend = Date.now() at the moment of sending —
+# composer_send.yaml sets it; card/weather flows set it before tapping.
+# Optional inputs:
+#   output.answerLabel  names the measurement in the report
+#
+# Agentic builds (4.1.7+) may first ask a clarification (numbered chips:
+# location card "Share location", or "Choose one" … "Don't see your
+# option? Type or say it.") and may end with a confirmation card (save
+# crop / gender). Rule: always tap the FIRST chip — except the photo card,
+# where it's always "Continue without one".
+#
+# Functional checks only (what the AI says is covered by the evals
+# project). Failures: the answer completed (action row / suggestions),
+# it isn't the inline error or the "Sorry, I had a problem" reply, it has real text (a line of ≥ 20 characters — weather answers are
+# cards of short lines), and it
+# arrived within ANSWER_SLA_MS of the last send/chip tap.
+# Logs: [ANSWER-LATENCY] <label>_ms (answer only, the SLA figure) and
+# <label>_total_ms (including clarification rounds — what users wait),
+# [AGENTIC] clarifications / confirmation.
+#
+# Speed: every Maestro check on an element that isn't there costs ~3.5s
+# (the app's animations never let the screen settle), so checks are kept
+# to a minimum. Chips have no testTags yet (requested); text is English.
+# ============================================================
+
+- evalScript: ${output.clarifications = 0}
+- evalScript: ${output.tAsked = output.tSend}
+
+# ── Watch first, scroll later. While the app shows "Getting your
+#    answer… / location…" nothing is scrolled: the screen stays still and
+#    whatever arrives (a clarification card or the answer) lands in view —
+#    the app doesn't follow the answer down, it shows it from its top.
+#    Only once the loader is gone and no chip card is showing do we scroll
+#    DOWN to the end of the answer (action row / suggestions). If the
+#    loader is never seen (other language, older build) the loop falls back
+#    to scrolling, so it still terminates. ──
+- repeat:
+    while:
+      notVisible:
+        id: "chat_share_btn|chat_suggested_questions"
+    times: 8
+    commands:
+      - evalScript: ${output.chipThisPass = false}
+      - extendedWaitUntil:
+          visible:
+            text: "Getting your .*"
+          timeout: 4000
+          optional: true
+      - extendedWaitUntil:
+          notVisible:
+            text: "Getting your .*"
+          timeout: 90000
+          optional: true
+      - runFlow:
+          when:
+            visible:
+              text: "Choose one|Don't see your option.*|Share location|Add one clear photo.*"
+          commands:
+            - runFlow: tap_first_clarification_chip.yaml
+            # Only a tapped chip counts (an answered card's echo can still
+            # match the text above → then scroll on, don't loop on it).
+            - evalScript: ${output.chipThisPass = output.chipDone == true}
+            - evalScript: "${output.clarifications = output.clarifications + (output.chipThisPass ? 1 : 0)}"
+            - evalScript: "${output.tSend = output.chipThisPass ? Date.now() : output.tSend}"
+      - runFlow:
+          when:
+            true: ${!output.chipThisPass}
+          commands:
+            - scrollUntilVisible:
+                centerElement: false
+                element:
+                  id: "chat_share_btn|chat_suggested_questions"
+                direction: DOWN
+                timeout: 10000
+                speed: 75
+                optional: true
+- assertVisible:
+    id: "chat_share_btn|chat_suggested_questions"
+    label: "Answer completed (action row or suggestions shown)"
+
+# ── Real answer: not the inline error, has text, within the SLA ──
+- assertNotVisible:
+    id: "chat_retry_btn"
+    label: "Answer is not the inline error"
+# The backend's failure reply looks like a normal answer (Share/Listen row,
+# no Retry button), so it is caught by its wording.
+- assertNotVisible:
+    text: "(?is).*(had a problem just now|ask your question again).*"
+    childOf:
+      id: "chat_ai_message"
+    label: "Answer is not the 'Sorry, I had a problem' failure reply"
+- assertVisible:
+    text: "(?s).{20,}"
+    childOf:
+      id: "chat_ai_message"
+    label: "Answer has real text (a line of ≥ 20 characters)"
+- evalScript: ${output.answerMs = Date.now() - output.tSend}
+- evalScript: ${output.answerTotalMs = Date.now() - output.tAsked}
+- evalScript: ${console.log('[ANSWER-LATENCY] ' + (output.answerLabel || 'answer') + '_ms=' + output.answerMs)}
+- evalScript: ${console.log('[ANSWER-LATENCY] ' + (output.answerLabel || 'answer') + '_total_ms=' + output.answerTotalMs)}
+- evalScript: ${console.log('[AGENTIC] ' + (output.answerLabel || 'answer') + ' - clarifications=' + output.clarifications)}
+- assertTrue:
+    condition: "${output.answerMs <= (typeof ANSWER_SLA_MS === 'undefined' ? 60000 : Number(ANSWER_SLA_MS))}"
+    label: "Answer within ANSWER_SLA_MS"
+
+# ── Confirmation cards after the answer (agentic: save crop, gender …)
+#    → tap the first chip of each (up to 2 in a row) and check the tap took
+#    effect: the option is echoed as the user's message. Only while no
+#    suggestions are on screen: their numbered rows ("1") would otherwise
+#    be mistaken for a confirmation chip. What the card says is not
+#    checked here (AI content — covered by the evals project). ──
+- repeat:
+    while:
+      notVisible:
+        id: "chat_suggested_questions"
+      visible:
+        text: "1"
+        below:
+          id: "chat_share_btn"
+    times: 2
+    commands:
+      - evalScript: ${output.confLabel = ''}
+      - runFlow:
+          when:
+            visible:
+              text: "2"
+              below:
+                id: "chat_share_btn"
+          commands:
+            - copyTextFrom:
+                text: "(?!Listen$|Share$).{2,}"
+                rightOf:
+                  text: "1"
+                  below:
+                    id: "chat_share_btn"
+                below:
+                  id: "chat_share_btn"
+                above:
+                  text: "2"
+                  below:
+                    id: "chat_share_btn"
+            - evalScript: ${output.confLabel = maestro.copiedText || ''}
+      - tapOn:
+          text: "1"
+          below:
+            id: "chat_share_btn"
+      - evalScript: ${console.log('[AGENTIC] ' + (output.answerLabel || 'answer') + ' - confirmation answered with first chip - ' + output.confLabel)}
+      - evalScript: ${output.confLabelRe = String(output.confLabel).replace(/\\/g, '\\\\').replace(/\?/g, '\\?').replace(/\./g, '\\.').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\*/g, '\\*').replace(/\+/g, '\\+').replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\|/g, '\\|')}
+      - runFlow:
+          when:
+            true: ${output.confLabel != ''}
+          commands:
+            - extendedWaitUntil:
+                visible:
+                  id: "chat_user_message"
+                  containsDescendants:
+                    - text: ${output.confLabelRe}
+                timeout: 10000
+                label: "Confirmation choice echoed as the user's message"

@@ -8,8 +8,12 @@ Reads, per flow in flows/<batch>/:
   - the latest run under reports/review/<batch>/<flow>/ (run.log + Maestro's
     maestro.log) for pass/fail, duration, step timings and the failure reason
   - videos in reports/recordings/<batch>/<flow>[_partN].mp4
-and writes reports/FarmerChat_<Batch>_v<version>_<device>_<date>.html — version
-from app.apk, device from the phone that ran the tests, date of the latest run.
+and writes two pages — version from app.apk, device from the phone that ran the
+tests, date of the latest run:
+  reports/FarmerChat_<Batch>_v<version>_<device>_<date>.html          detailed
+  reports/FarmerChat_<Batch>_v<version>_<device>_<date>_summary.html  shareable
+The summary has no videos or screenshots, so it can go to stakeholders. Long
+digit runs (e.g. a typed phone number) are masked in both.
 Videos are linked, not embedded, so the page stays small and nothing leaves the
 machine.
 """
@@ -40,7 +44,13 @@ def front_matter(path):
     tid, _, title = name.partition(" - ")
     tags = re.findall(r"^\s+-\s+(\S+)\s*$", head.split("tags:", 1)[1], re.M) if "tags:" in head else []
     return {"id": tid, "title": title or name, "priority": meta("priority") or "P1",
-            "description": meta("description"), "requires": meta("requires"), "tags": tags}
+            "description": meta("description"), "requires": meta("requires"), "tags": tags,
+            "pid": meta("id"), "quarantine": meta("quarantine")}
+
+
+def mask(text):
+    """Hide long digit runs (phone numbers, OTPs typed by sign-up steps)."""
+    return re.sub(r"\d{6,}", "••••••", text)
 
 
 def secs(t):
@@ -81,7 +91,7 @@ def parse_run(stem):
                 del stack[i:]
                 break
         if not stack and not label.startswith(("Apply configuration", "Define variables")):
-            steps.append({"label": label, "state": state,
+            steps.append({"label": mask(label), "state": state,
                           "dur": (secs(ts) - secs(start)).total_seconds()})
     first, last = secs(events[0][0]), secs(events[-1][0])
     duration = (last - first).total_seconds()
@@ -99,14 +109,30 @@ def parse_run(stem):
         m = re.search(r"\n\n((?:Element not found|Assertion is false|No visible element|.*Exception)[^\n]*)", text)
         if m:
             msg = m.group(1).strip()
-        failure = {"step": step, "message": msg}
+        failure = {"step": mask(step), "message": mask(msg)}
     shots = sorted(glob.glob(os.path.join(os.path.dirname(log), "screenshot-❌-*.png")))
-    sel = re.search(r"Selected device (\S+)", open(log, encoding="utf-8", errors="replace").read())
+    log_text = open(log, encoding="utf-8", errors="replace").read()
+    sel = re.search(r"Selected device (\S+)", log_text)
+    # Answer latencies logged by helpers/wait_for_answer.yaml, and soft checks
+    # (optional asserts labelled "soft check") that didn't hold.
+    latency = {}
+    for name, ms in re.findall(r"\[ANSWER-LATENCY\] (\w+?)_ms=(\d+)", log_text):
+        latency[name] = int(ms)
+    warnings = sorted({mask(l) for _, l, st in events if st == "WARNED" and "soft check" in l})
+    # Notes the flow printed itself (console.log '[NOTE] …'), e.g. a part of
+    # the journey that couldn't be exercised this run. Only real console
+    # output counts — the command definitions are logged too, even when
+    # their branch is skipped.
+    for line in log_text.splitlines():
+        if "JsConsole" in line:
+            m = re.search(r"\[NOTE\] (.+?)\s*$", line)
+            if m:
+                warnings.append(mask(m.group(1)))
     dev_file = os.path.join(d, "device.txt")
     saved = tuple((open(dev_file).read().splitlines() + ["", ""])[:2]) if os.path.exists(dev_file) else None
     return {"serial": sel.group(1) if sel else "", "saved_device": saved,
             "status": "FAIL" if failed else "PASS", "duration": duration, "steps": steps,
-            "failure": failure, "run": run_dir,
+            "failure": failure, "run": run_dir, "latency": latency, "warnings": warnings,
             "shot": os.path.relpath(shots[-1], REPORTS) if shots else None}
 
 
@@ -152,6 +178,14 @@ for path in sorted(glob.glob(os.path.join(REPO, "flows", BATCH, "TC_*.yaml"))):
     stem = os.path.splitext(os.path.basename(path))[0]
     meta = front_matter(path)
     run = parse_run(stem)
+    # A run older than the flow's last edit tested a different version of
+    # the test — don't count it as this test's result.
+    stale = None
+    if run:
+        ran_at = datetime.strptime(run["run"][:17], "%Y-%m-%d_%H%M%S").timestamp()
+        if os.path.getmtime(path) > ran_at:
+            stale, run = run["run"], None
+    meta["stale"] = stale
     rows.append({"stem": stem, "file": os.path.relpath(path, REPO), **meta, "run": run, "videos": videos(stem)})
 
 runs = [r["run"] for r in rows if r["run"]]
@@ -167,16 +201,20 @@ OUT = os.path.join(REPORTS, f"FarmerChat_{BATCH_LABEL}_v{VERSION}_{DEVICE}_{run_
 total = len(rows)
 passed = sum(1 for r in rows if r["run"] and r["run"]["status"] == "PASS")
 failed = sum(1 for r in rows if r["run"] and r["run"]["status"] == "FAIL")
-notrun = total - passed - failed
+quarantined = sum(1 for r in rows if r["quarantine"] and not r["run"])
+warned = sum(1 for r in rows if r["run"] and r["run"]["warnings"])
+notrun = total - passed - failed - quarantined
 total_time = sum(r["run"]["duration"] for r in rows if r["run"])
 e = html.escape
 
 
-def row_html(r):
+def row_html(r, summary=False):
     run = r["run"]
-    status = run["status"] if run else "NOT RUN"
+    status = run["status"] if run else ("QUARANTINED" if r["quarantine"] else "NOT RUN")
     cls = {"PASS": "pass", "FAIL": "fail"}.get(status, "skip")
-    if r["videos"]:
+    if summary:
+        btns = ""
+    elif r["videos"]:
         btns = "".join(
             f'<button class="play" data-src="{e(v)}" data-title="{e(r["id"])} · {e(r["title"])}'
             f'{" · part " + str(i + 1) if len(r["videos"]) > 1 else ""}">▶ '
@@ -188,12 +226,24 @@ def row_html(r):
         f = run["failure"]
         reason = (f'<div class="reason"><b>Failed step:</b> <code>{e(f["step"])}</code>'
                   + (f'<br><b>Why:</b> {e(f["message"])}' if f["message"] else "")
-                  + (f'<br><a href="{e(run["shot"])}" target="_blank">Failure screenshot</a>' if run["shot"] else "")
+                  + (f'<br><a href="{e(run["shot"])}" target="_blank">Failure screenshot</a>' if run["shot"] and not summary else "")
                   + "</div>")
     elif run:
         reason = '<span class="muted">—</span>'
+    elif r["quarantine"]:
+        reason = ""
+    elif r["stale"]:
+        reason = '<span class="muted">Not run since the test was last changed</span>'
     else:
         reason = '<span class="muted">No run found</span>'
+    if r["quarantine"]:
+        reason += f'<div class="quar"><b>Quarantined:</b> {e(r["quarantine"])}</div>'
+    if run and run["warnings"]:
+        reason += "".join(f'<div class="warn">⚠ {e(w)}</div>' for w in run["warnings"])
+    lat = ""
+    if run and run["latency"]:
+        lat = "".join(f'<div class="lat">{e(k.replace("_total", " (incl. clarifications)").replace("_", " "))}: {v / 1000:.1f}s</div>'
+                      for k, v in run["latency"].items())
     steps = ""
     if run:
         items = "".join(
@@ -205,18 +255,19 @@ def row_html(r):
     req = f'<div class="muted small">Requires: <code>{e(r["requires"])}</code></div>' if r["requires"] else ""
     return f"""
 <tr class="{cls}">
-  <td class="id">{e(r["id"])}<div class="prio p-{e(r["priority"].lower())}">{e(r["priority"])}</div></td>
+  <td class="id">{e(r["id"])}<div class="pid">{e(r["pid"])}</div><div class="prio p-{e(r["priority"].lower())}">{e(r["priority"])}</div></td>
   <td><div class="title">{e(r["title"])}</div>
       <div class="desc">{e(r["description"])}</div>
       <div class="meta">{tags} <span class="muted small"><code>{e(r["file"])}</code></span></div>{req}{steps}</td>
   <td><span class="badge {cls}">{e(status)}</span></td>
-  <td class="num">{fmt(run["duration"]) if run else "—"}</td>
-  <td>{btns}</td>
+  <td class="num">{fmt(run["duration"]) if run else "—"}{lat}</td>
+  {"" if summary else f"<td>{btns}</td>"}
   <td>{reason}</td>
 </tr>"""
 
 
-page = f"""<!doctype html>
+def build(summary=False):
+    return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FarmerChat {e(BATCH_LABEL)} Report</title>
@@ -261,6 +312,10 @@ button.play {{ border:1px solid var(--line); background:var(--bg); color:var(--a
 button.play:hover {{ border-color:var(--accent); }}
 .reason {{ font-size:13px; color:var(--fail); max-width:320px; }}
 .reason code {{ color:var(--fg); }}
+.pid {{ font-size:11px; font-weight:600; color:var(--accent); white-space:nowrap; }}
+.quar {{ font-size:13px; color:var(--skip); max-width:320px; margin-top:4px; }}
+.warn {{ font-size:12px; color:var(--skip); margin-top:4px; }}
+.lat {{ font-size:11px; color:var(--muted); white-space:nowrap; }}
 details {{ margin-top:6px; }} summary {{ cursor:pointer; color:var(--muted); font-size:12px; }}
 ol.steps {{ margin:6px 0 0; padding:0; list-style:none; font-size:12px; }}
 ol.steps li {{ display:grid; grid-template-columns:52px 1fr auto; gap:8px; padding:2px 0; border-top:1px dashed var(--line); }}
@@ -275,17 +330,19 @@ dialog video {{ display:block; width:100%; max-height:80vh; background:#000; }}
 </style></head>
 <body><main>
 <h1>{e(BATCH_LABEL)} suite: test report</h1>
-<p class="sub">FarmerChat v{e(VERSION)} · {e(DEVICE)} · runs of {e(run_date)} · generated {datetime.now().strftime('%d %b %Y, %H:%M')}</p>
+<p class="sub">FarmerChat v{e(VERSION)} · {e(DEVICE)} · runs of {e(run_date)} · generated {datetime.now().strftime('%d %b %Y, %H:%M')}{" · summary (videos and screenshots are in the detailed report)" if summary else ""}</p>
 <div class="cards">
   <div class="card"><div class="k">Tests</div><div class="v">{total}</div></div>
   <div class="card pass"><div class="k">Passed</div><div class="v">{passed}</div></div>
   <div class="card fail"><div class="k">Failed</div><div class="v">{failed}</div></div>
+  <div class="card"><div class="k">With warnings</div><div class="v">{warned}</div></div>
+  <div class="card"><div class="k">Quarantined</div><div class="v">{quarantined}</div></div>
   <div class="card"><div class="k">Not run</div><div class="v">{notrun}</div></div>
   <div class="card"><div class="k">Total time</div><div class="v">{fmt(total_time)}</div></div>
 </div>
 <div class="wrap"><table>
-<thead><tr><th>ID</th><th>Test</th><th>Result</th><th>Time</th><th>Video</th><th>Failure reason</th></tr></thead>
-<tbody>{''.join(row_html(r) for r in rows)}</tbody></table></div>
+<thead><tr><th>ID</th><th>Test</th><th>Result</th><th>Time</th>{"" if summary else "<th>Video</th>"}<th>Failure reason / notes</th></tr></thead>
+<tbody>{''.join(row_html(r, summary) for r in rows)}</tbody></table></div>
 </main>
 <dialog id="player"><div class="bar"><span id="ptitle"></span><button id="pclose" aria-label="Close">×</button></div>
 <video id="pvideo" controls playsinline></video></dialog>
@@ -302,5 +359,8 @@ dlg.addEventListener('click', e => {{ if (e.target === dlg) close(); }});
 </script>
 </body></html>
 """
-open(OUT, "w", encoding="utf-8").write(page)
-print(f"{OUT}  ({passed} passed, {failed} failed, {notrun} not run, {fmt(total_time)})")
+SUMMARY_OUT = OUT[:-5] + "_summary.html"
+open(OUT, "w", encoding="utf-8").write(build())
+open(SUMMARY_OUT, "w", encoding="utf-8").write(build(summary=True))
+print(f"{OUT}\n{SUMMARY_OUT}\n  {passed} passed, {failed} failed, {quarantined} quarantined, "
+      f"{notrun} not run, {fmt(total_time)}")

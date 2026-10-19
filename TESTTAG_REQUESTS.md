@@ -15,7 +15,7 @@ This doc lists only what is **missing or wrong**. Screens not mentioned are corr
 > (Android 12) and a Vivo 1919 (Android 12) while running the smoke suite:
 > - The composer **still** exposes no testTags (P0 below is unchanged).
 > - **New P0:** the answer's Share/Listen row intermittently drops out of the accessibility tree
->   (section below). It blocks TC05 (Listen) on some runs and affects TalkBack users too.
+>   (section below). It blocks FC-TTS-01 (Listen, now quarantined) on some runs and affects TalkBack users too.
 > - **Chat history question answered:** it is back in the drawer as *Past Advice* + **See all**;
 >   `drawer_see_all_btn`, `chat_history_screen` and `chat_history_list` are all present.
 
@@ -119,11 +119,11 @@ both automation and real users on smaller screens.
 ## ~~Question — where does chat history live now?~~ (answered in 4.1.5)
 
 **Resolved:** 4.1.5 shows chat history in the drawer under *Past Advice*, with a **See all** button
-(`drawer_see_all_btn`) that opens `chat_history_screen` / `chat_history_list`. TC10 uses them and
-passes on the Vivo; TC36 (offline variant) hasn't been re-run yet. Original question kept below for context.
+(`drawer_see_all_btn`) that opens `chat_history_screen` / `chat_history_list`. they're used by FC-AUTH-01
+(account lifecycle) and FC-ERR-04 (offline variant). Original question kept below for context.
 
 
-Our suite has two tests (now `TC_10_chat_history_screen`, `TC_36_chat_history_retry_assert`)
+Our suite had two tests (`TC_21_chat_history_screen`, `TC_32_chat_history_retry_assert` at the time)
 targeting `chat_history_screen`, `chat_history_list` and `drawer_see_all_button`.
 
 In 4.1.1 we could not find **any** entry point to chat history: the drawer contains only

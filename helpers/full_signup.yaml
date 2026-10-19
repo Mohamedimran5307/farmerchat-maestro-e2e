@@ -17,14 +17,11 @@ appId: ${APP_ID}
 #   - runFlow: ../../helpers/full_signup.yaml
 #
 # NOT to be called by tests that verify sign-up entry points
-# themselves (TC22 settings_signup_phone, TC23 settings_signup_skip,
-# TC21 drawer_signup_phone, TC08 drawer_signup_full_flow) — those
+# themselves (FC-AUTH-02 Settings sign-up, FC-AUTH-03 drawer phone screen,
+# FC-AUTH-04 Settings phone screen, FC-AUTH-05 sign-up skip) — those
 # tests must keep the flow inline so they are testing the user
 # journey rather than this helper.
 # ============================================================
-
-# Start signed out — a previous test may have left the user logged in.
-- runFlow: ensure_signed_out.yaml
 
 # Ensure expanded top so the hamburger is in the hierarchy.
 - scrollUntilVisible:
@@ -34,22 +31,57 @@ appId: ${APP_ID}
     direction: UP
     timeout: 15000
 
-# Drawer → Sign Up
+# Start signed out — a previous test may have left the user logged in.
+# The drawer shows "Sign up" only when signed out, so open it first and
+# visit Settings to log out only when it's missing (checking Settings
+# every time cost ~20s, and most runs start signed out).
 - tapOn:
     id: "home_hamburger_button"
 - waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
-      id: "drawer_signup_btn"
+      id: "drawer_signup_btn|drawer_settings_btn"
     timeout: 5000
-- tapOn:
-    id: "drawer_signup_btn"
-
-# Optional account-benefits intermediate screen (some builds insert it)
+- evalScript: ${output.signedOut = false}
 - runFlow:
     when:
       visible:
-        id: "account_benefits_btn_signup"
+        id: "drawer_signup_btn"
+    commands:
+      - evalScript: ${output.signedOut = true}
+- runFlow:
+    when:
+      true: ${!output.signedOut}
+    commands:
+      - back
+      - runFlow: ensure_signed_out.yaml
+      - tapOn:
+          id: "home_hamburger_button"
+      - extendedWaitUntil:
+          visible:
+            id: "drawer_signup_btn"
+          timeout: 5000
+
+# Drawer → Sign Up
+- tapOn:
+    id: "drawer_signup_btn"
+
+# Optional account-benefits screen (some builds insert it). Wait for
+# whichever screen comes first — no idle check for one that isn't there.
+- extendedWaitUntil:
+    visible:
+      id: "auth_phone_input|account_benefits_btn_signup"
+    timeout: 10000
+- evalScript: ${output.onPhoneInput = false}
+- runFlow:
+    when:
+      visible:
+        id: "auth_phone_input"
+    commands:
+      - evalScript: ${output.onPhoneInput = true}
+- runFlow:
+    when:
+      true: ${!output.onPhoneInput}
     commands:
       - tapOn:
           id: "account_benefits_btn_signup"

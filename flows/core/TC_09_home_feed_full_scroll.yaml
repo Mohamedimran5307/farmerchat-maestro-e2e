@@ -1,0 +1,96 @@
+appId: ${APP_ID}
+name: "TC09 - Home Feed Full Scroll → Back to First Card → Chat"
+# id: FC-FEED-02
+# priority: P1
+# description: Verifies scrolling through the whole home feed: notes the first content card's question at the top, scrolls card by card to the end of the feed (detected by the feed no longer moving), flicks back fast until that first card returns, taps its Ask Now, and confirms the chat opens on that same question with an answer and suggestions.
+tags:
+  - home
+  - regression
+  - core
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+# In 4.1.5 the hamburger/weather buttons float over the feed and the
+# header text stays in the hierarchy behind the cards, so none of them
+# tell us where the feed is scrolled. Use the first content card itself
+# as the top-of-feed marker: remember its question now, at the top.
+- extendedWaitUntil:
+    visible:
+      id: "content_card_start_chat_btn_[0-9]+"
+    timeout: 20000
+- copyTextFrom:
+    text: ".+\\?"
+    childOf:
+      id: "home_feed_card_[0-9a-f]{8}-.*"
+# Escape regex metacharacters so the question can be used as a selector.
+- evalScript: ${output.firstQ = maestro.copiedText.replace(/\\/g, '\\\\').replace(/\?/g, '\\?').replace(/\./g, '\\.').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\*/g, '\\*').replace(/\+/g, '\\+')}
+
+# Scroll through the whole feed card by card until it stops moving.
+# Swipes run along the left margin (outside the cards): a centre swipe
+# lands on the crops card's own scrollable list and scrolls the crops
+# instead of the feed. The end is detected by the feed fingerprint not
+# changing after a swipe, so it works with or without an end-of-feed note.
+- runFlow: ../../helpers/feed_fingerprint.yaml
+- evalScript: ${output.feedEnd = false}
+- repeat:
+    while:
+      true: ${!output.feedEnd}
+    times: 30
+    commands:
+      - evalScript: ${output.prevFp = output.feedFp}
+      - swipe:
+          start: 2%, 75%
+          end: 2%, 35%
+          duration: 400
+      - runFlow: ../../helpers/feed_fingerprint.yaml
+      - evalScript: ${output.feedEnd = (output.feedFp == output.prevFp)}
+- assertTrue: ${output.feedEnd}
+# The last card's Ask Now is on screen and the first card is long gone.
+- assertVisible:
+    id: "content_card_start_chat_btn_[0-9]+"
+- assertNotVisible:
+    text: ${output.firstQ}
+
+# Back to the first card fast: hard flicks along the margin. Momentum
+# stops at the top on its own, and the loop ends as soon as the first
+# card's question is visible, so it never drags past the top into
+# pull-to-refresh (which reloads the feed in a new order). Margin flicks
+# can't land on a card, so they can't be read as a tap.
+- repeat:
+    while:
+      notVisible:
+        text: ${output.firstQ}
+    times: 10
+    commands:
+      - swipe:
+          start: 2%, 30%
+          end: 2%, 55%
+          duration: 50
+
+# Tap that card's own Ask Now (the CTA directly below its question).
+- tapOn:
+    id: "content_card_start_chat_btn_[0-9]+"
+    below:
+      text: ${output.firstQ}
+
+# The chat opens on the same question. Some cards open with a short
+# summary + "Read full advice"; others render the full answer straight
+# away (content-dependent). Expand only when the button is there.
+- extendedWaitUntil:
+    visible:
+      id: "chat_screen"
+    timeout: 10000
+- assertVisible:
+    text: ${output.firstQ}
+# Expand "Read full advice" when the card offers it (content-dependent).
+- runFlow: ../../helpers/open_full_advice.yaml
+# Suggestions only appear after the answer fully renders — the implicit
+# "wait for AI response".
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 90000
+    speed: 75

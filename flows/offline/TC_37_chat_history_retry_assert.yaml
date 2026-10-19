@@ -1,0 +1,99 @@
+appId: ${APP_ID}
+name: "TC37 - Chat History Offline: Error + Retry Loads History"
+# id: FC-ERR-04
+# priority: P2
+# requires: PHONE_NUMBER,OTP_CODE
+# description: Self-contained chat-history offline/recovery test. Signs up online, seeds chat history with a 'wheat' question, returns home, goes offline and opens Chat History to surface the global no-internet error, then restores network, retries, and confirms the seeded conversation loads. Network toggling is driven entirely by Maestro (setAirplaneMode) — no manual intervention.
+tags:
+  - chat
+  - error
+  - regression
+  - offline
+---
+# Ensure online, then onboard + sign up. (clearState is intentionally avoided:
+# on this build, clearing the app's large data set kills the Maestro driver
+# mid-run — tcp:7001 closes. complete_onboarding is idempotent.)
+- setAirplaneMode: disabled
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+- runFlow: ../../helpers/full_signup.yaml
+
+# Seed chat history with one question.
+- runFlow:
+    file: ../../helpers/compose_typed_question.yaml
+    env:
+      QUESTION_TEXT: "How to grow wheat"
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 90000
+    speed: 40
+
+# Close chat → home.
+- tapOn:
+    id: "appbar_logo_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 10000
+
+# Go offline and open Chat History → global no-internet error screen.
+- setAirplaneMode: enabled
+- tapOn:
+    id: "home_hamburger_button"
+- extendedWaitUntil:
+    visible:
+      id: "drawer_see_all_btn"
+    timeout: 5000
+- tapOn:
+    id: "drawer_see_all_btn"
+- extendedWaitUntil:
+    visible:
+      id: "error_screen"
+    timeout: 30000
+- assertVisible:
+    id: "error_btn_try_again"
+
+# Restore network and retry until Chat History loads with the seeded conversation.
+# Retry may land back on home, so reopen Chat History when that happens.
+- setAirplaneMode: disabled
+- retry:
+    maxRetries: 5
+    commands:
+      - runFlow:
+          when:
+            visible:
+              id: "error_btn_try_again"
+          commands:
+            - tapOn:
+                id: "error_btn_try_again"
+      - runFlow:
+          when:
+            visible:
+              id: "home_screen"
+          commands:
+            - tapOn:
+                id: "home_hamburger_button"
+            - extendedWaitUntil:
+                visible:
+                  id: "drawer_see_all_btn"
+                timeout: 5000
+            - tapOn:
+                id: "drawer_see_all_btn"
+      # Wait INSIDE the retry for the history list to actually load. The radio
+      # takes a few seconds to reassociate after airplane-mode off, so right
+      # after tapping retry the error screen is often still up — without this
+      # wait the flow checks chat_history_list too early. If it isn't visible
+      # within the timeout, the retry block re-runs and taps "Try again" again.
+      - extendedWaitUntil:
+          visible:
+            id: "chat_history_list"
+          timeout: 20000
+- extendedWaitUntil:
+          visible:
+            id: "chat_history_list"
+          timeout: 20000
+- assertVisible:
+    text: ".*wheat.*"

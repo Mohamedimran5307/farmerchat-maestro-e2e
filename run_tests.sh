@@ -119,6 +119,8 @@ echo -e "Tester: ${YELLOW}$TESTER_NAME${NC}"
 #           ./run_tests.sh "Imran" TC01,TC03
 #           ./run_tests.sh "Imran" @smoke
 #           ./run_tests.sh "Imran" @smoke,TC08
+#           ./run_tests.sh "Imran" FC-CHAT-01        (permanent id)
+#   RUN_QUARANTINED=1 ./run_tests.sh "Imran" @smoke   (include quarantined)
 # ─────────────────────────────────────────────────────────────────────────────
 TC_FILTER="${2:-}"
 if [ -n "$TC_FILTER" ]; then
@@ -554,7 +556,7 @@ setup_test() {
 # ─────────────────────────────────────────────────────────────────────────────
 # DISCOVER TEST CASES from flows/<batch>/TC_<NN>_*.yaml
 # Batches run in BATCH_DIRS order; TC numbers are globally sequential
-# across batches (smoke = TC01–TC11, core = TC12–…), and every flow
+# across batches (smoke = TC01–TC07, core = TC08–…), and every flow
 # also carries its batch name as a tag, so `@smoke` selects a batch.
 # Each TC entry is built from the YAML front-matter:
 #   `name:`          → display name (required; fallback = filename)
@@ -570,6 +572,7 @@ setup_test() {
 BATCH_DIRS=(smoke core settings_help first_launch offline)
 declare -a TEST_CASES=()
 declare -a TEST_TAGS=()   # parallel to TEST_CASES
+declare -a TEST_PIDS=()   # parallel to TEST_CASES — permanent ids
 for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0-9]*_*.yaml 2>/dev/null; done); do
   [ -f "$tc_path" ] || continue
   tc_file=$(basename "$tc_path" .yaml)
@@ -586,6 +589,8 @@ for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0
   tc_priority=""
   tc_desc=""
   tc_requires=""   # e.g. "LANGUAGE_CODE=en"
+  tc_pid=""        # permanent id, e.g. FC-CHAT-01 (survives renumbering)
+  tc_quarantine="" # reason; quarantined flows are skipped unless RUN_QUARANTINED=1
   tc_tags=","      # ",home,regression,smoke," — for @tag filtering
   in_tags=0
 
@@ -605,6 +610,10 @@ for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0
       tc_priority="${BASH_REMATCH[1]}"
     elif [[ -z "$tc_desc" && "$line" =~ ^\#[[:space:]]*description:[[:space:]]*(.*)$ ]]; then
       tc_desc="${BASH_REMATCH[1]}"
+    elif [[ -z "$tc_pid" && "$line" =~ ^\#[[:space:]]*id:[[:space:]]*([A-Za-z0-9_-]+) ]]; then
+      tc_pid="${BASH_REMATCH[1]}"
+    elif [[ -z "$tc_quarantine" && "$line" =~ ^\#[[:space:]]*quarantine:[[:space:]]*(.*)$ ]]; then
+      tc_quarantine="${BASH_REMATCH[1]}"
     elif [[ -z "$tc_requires" && "$line" =~ ^\#[[:space:]]*requires:[[:space:]]*(.*)$ ]]; then
       tc_requires="${BASH_REMATCH[1]}"
     fi
@@ -620,6 +629,16 @@ for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0
   # Strip "TC## - " from the displayed name too so the runner's progress
   # column stays narrow (matches the old hand-curated names).
   display_name=$(echo "$tc_name" | sed -E 's/^TC_?[0-9]+[[:space:]]*-[[:space:]]*//')
+  # Show the permanent id in reports so results stay comparable across
+  # renumbering (TC numbers are display order only).
+  [ -n "$tc_pid" ] && display_name="[$tc_pid] $display_name"
+
+  # Quarantined flows (known app bug / unstable) are skipped with their
+  # reason, so they don't fail the run or train people to ignore failures.
+  if [ -n "$tc_quarantine" ] && [ "${RUN_QUARANTINED:-0}" != "1" ]; then
+    echo -e "${YELLOW}  ⟳ Skipping $tc_id${tc_pid:+ ($tc_pid)}: quarantined — $tc_quarantine${NC}"
+    continue
+  fi
 
   # Honor `# requires:` constraints. Two forms are supported, and the
   # value can be a comma-separated list to require multiple things:
@@ -664,6 +683,7 @@ for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0
 
   TEST_CASES+=("${tc_id}|${tc_file}|${display_name}|${tc_desc}|${tc_priority}")
   TEST_TAGS+=("$tc_tags")
+  TEST_PIDS+=("$tc_pid")
 done
 
 if [ ${#TEST_CASES[@]} -eq 0 ]; then
@@ -685,7 +705,7 @@ if [ -n "$TC_FILTER" ]; then
       # Trim whitespace
       req="${req#"${req%%[![:space:]]*}"}"
       req="${req%"${req##*[![:space:]]}"}"
-      if [ "$TC_ID" = "$req" ] || \
+      if [ "$TC_ID" = "$req" ] || [ "${TEST_PIDS[$i]}" = "$req" ] || \
          { [[ "$req" == @* ]] && [[ "${TEST_TAGS[$i]}" == *",${req#@},"* ]]; }; then
         FILTERED+=("$test_case")
         break
@@ -751,6 +771,10 @@ FAILED=0
 FIRST_ATTEMPT_PASSED=0
 TEST_RESULTS=""
 declare -a TEST_STATUS_ARRAY=()
+# Per test: attempts used, and why each failed attempt failed (so a test
+# that only passed on a retry shows as FLAKY with the earlier failure).
+declare -a TEST_ATTEMPTS_ARRAY=()
+declare -a TEST_RETRY_ISSUES_ARRAY=()
 START_TIME=$(date +%s)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -811,7 +835,10 @@ run_test_attempt() {
   echo "──────────────────────────────────────────────────────────────" >&3
   echo " maestro test $TC_FILE (attempt $ATTEMPT_NUM)" >&3
   echo "──────────────────────────────────────────────────────────────" >&3
-  TEST_OUTPUT=$(maestro --device $DEVICE_ID test \
+  # --no-reinstall-driver: the driver is installed/refreshed once per run
+  # above (version check + ensure_maestro_driver); reinstalling it before
+  # every test cost ~7s each and showed as idle time in the videos.
+  TEST_OUTPUT=$(maestro --device $DEVICE_ID test --no-reinstall-driver \
     --debug-output "$DEBUG_DIR" \
     "${ENV_FLAGS[@]}" \
     "$(tc_flow_path "$TC_FILE")" 2>&1 \
@@ -935,6 +962,7 @@ for test_case in "${TEST_CASES[@]}"; do
   FINAL_DURATION=0
   FINAL_LOG_FILE=""
   RETRY_INFO=""
+  RETRY_ISSUES=""
   
   while [ $ATTEMPT -le $((MAX_RETRIES + 1)) ] && [ "$TEST_PASSED" = "false" ]; do
     orphan_guard
@@ -962,6 +990,9 @@ for test_case in "${TEST_CASES[@]}"; do
       FINAL_OUTPUT="$TEST_OUTPUT"
       FINAL_DURATION=$TEST_DURATION
       FINAL_LOG_FILE="$TEST_LOG_FILE"
+      # Same extraction as the final failure message below.
+      ATTEMPT_ISSUE=$(echo "$TEST_OUTPUT" | grep -A 2 "FAILED" | head -3 | tr '\n' ' ' | sed 's/\\/\\\\/g' | tr '"' "'" | sed 's/[[:cntrl:]]//g')
+      RETRY_ISSUES="${RETRY_ISSUES:+$RETRY_ISSUES | }Attempt $ATTEMPT: ${ATTEMPT_ISSUE:-unknown failure}"
       
       if [ $ATTEMPT -le $MAX_RETRIES ]; then
         echo -ne "\r"
@@ -982,12 +1013,14 @@ for test_case in "${TEST_CASES[@]}"; do
     STATUS="PASSED"
     PASSED=$((PASSED + 1))
     TEST_STATUS_ARRAY+=("PASSED")
+    ATTEMPTS_USED=$ATTEMPT
     echo -e "${GREEN}✓ PASSED${NC} (${FINAL_DURATION}s)${RETRY_INFO}"
     ERROR_MESSAGE=""
   else
     STATUS="FAILED"
     FAILED=$((FAILED + 1))
     TEST_STATUS_ARRAY+=("FAILED")
+    ATTEMPTS_USED=$((MAX_RETRIES + 1))
     echo -e "${RED}✗ FAILED${NC} (${FINAL_DURATION}s) ${YELLOW}(after $MAX_RETRIES retries)${NC}"
     # Escape backslashes first (\ → \\) so paths like C:\... or regex \d
     # in the failure output don't produce invalid JSON.
@@ -996,6 +1029,9 @@ for test_case in "${TEST_CASES[@]}"; do
   fi
   
   OUTPUT="$FINAL_OUTPUT"
+  TEST_ATTEMPTS_ARRAY+=("$ATTEMPTS_USED")
+  TEST_RETRY_ISSUES_ARRAY+=("$RETRY_ISSUES")
+  if [ "$STATUS" = "PASSED" ] && [ "$ATTEMPTS_USED" -gt 1 ]; then FLAKY_JSON=true; else FLAKY_JSON=false; fi
   
   if [ -n "$TEST_RESULTS" ]; then
     TEST_RESULTS="$TEST_RESULTS,"
@@ -1013,15 +1049,21 @@ for test_case in "${TEST_CASES[@]}"; do
     STATUS_DISPLAY="✗ Failed"
   fi
   
+  # Names/descriptions can contain quotes ("Read full advice") → escape.
+  TC_NAME_JSON=$(printf '%s' "$TC_NAME" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  TC_DESC_JSON=$(printf '%s' "$TC_DESC" | sed 's/\\/\\\\/g; s/"/\\"/g')
   TEST_RESULTS="$TEST_RESULTS
     {
       \"tc\": \"$TC_ID\",
-      \"name\": \"$TC_NAME\",
-      \"description\": \"$TC_DESC\",
+      \"name\": \"$TC_NAME_JSON\",
+      \"description\": \"$TC_DESC_JSON\",
       \"status\": \"$STATUS\",
       \"priority\": \"$TC_PRIORITY\",
       \"time_taken\": \"$DURATION_FRIENDLY\",
-      \"issue\": \"$ERROR_MESSAGE\"
+      \"issue\": \"$ERROR_MESSAGE\",
+      \"attempts\": $ATTEMPTS_USED,
+      \"flaky\": $FLAKY_JSON,
+      \"retry_issues\": \"$RETRY_ISSUES\"
     }"
 done
 
@@ -1085,7 +1127,11 @@ HTML_REPORT_FILE="$REPORTS_DIR/FarmerChat_TestReport_${TESTER_NAME// /_}_${DATE_
 PASS_RATE=$(echo "scale=0; $PASSED * 100 / $TOTAL" | bc)
 
 # Determine overall status color
-if [ $FAILED -eq 0 ]; then
+if [ $FAILED -eq 0 ] && [ "$FLAKED" -gt 0 ]; then
+  STATUS_COLOR="#e65100"
+  STATUS_BG="#fff3e0"
+  STATUS_TEXT="ALL PASSED — $FLAKED FLAKY (needed a retry)"
+elif [ $FAILED -eq 0 ]; then
   STATUS_COLOR="#4caf50"
   STATUS_BG="#e8f5e9"
   STATUS_TEXT="ALL TESTS PASSED"
@@ -1132,7 +1178,7 @@ build_recording_links() {
 }
 
 # Render latency chips for any TC that emits lines like
-#   [TC02-LATENCY] first_answer_ms=18342
+#   [ANSWER-LATENCY] first_answer_ms=18342   (helpers/wait_for_answer.yaml)
 # via `evalScript: ${console.log(...)}`. The Maestro CLI does NOT forward
 # JS `console.log` output to its own stdout (so it's NOT in the per-attempt
 # .log file we capture); it only appears in maestro.log inside the
@@ -1169,6 +1215,18 @@ build_latency_chips() {
   fi
 }
 
+# Failure screenshot of a test's newest failed attempt, embedded as base64
+# so the HTML stays self-contained when shared via email / Drive / etc.
+build_failure_screenshot_cell() {
+  local shot
+  shot=$(find_failure_screenshot "$1")
+  if [ -n "$shot" ] && [ -f "$shot" ]; then
+    echo "<details style='margin-top:8px;'><summary style='cursor:pointer; color:#1976d2; font-size:12px;'>📸 $2</summary><img src='data:image/png;base64,$(base64 -i "$shot" 2>/dev/null | tr -d '\n')' style='max-width:280px; border:1px solid #ddd; border-radius:4px; margin-top:6px; display:block;' /></details>"
+  else
+    echo "<div style='margin-top:8px; color:#999; font-size:11px;'>(no screenshot captured)</div>"
+  fi
+}
+
 # Build test cases HTML
 TEST_CASES_HTML=""
 TC_INDEX=0
@@ -1176,7 +1234,17 @@ for test_case in "${TEST_CASES[@]}"; do
   IFS='|' read -r TC_ID TC_FILE TC_NAME TC_DESC TC_PRIORITY <<< "$test_case"
 
   # Use actual recorded status for each test case
-  if [ "${TEST_STATUS_ARRAY[$TC_INDEX]}" = "PASSED" ]; then
+  TC_ATTEMPTS="${TEST_ATTEMPTS_ARRAY[$TC_INDEX]:-1}"
+  TC_RETRY_ISSUES="${TEST_RETRY_ISSUES_ARRAY[$TC_INDEX]}"
+  RETRY_CELL=""
+  if [ "${TEST_STATUS_ARRAY[$TC_INDEX]}" = "PASSED" ] && [ "$TC_ATTEMPTS" -gt 1 ]; then
+    # Passed only on a retry → flaky, not passed (docs/TEST_STRATEGY.md §4).
+    TC_STATUS="FLAKY (passed on attempt $TC_ATTEMPTS)"
+    TC_STATUS_COLOR="#e65100"
+    TC_STATUS_BG="#fff3e0"
+    TC_ICON="⚠"
+    SCREENSHOT_CELL=$(build_failure_screenshot_cell "$TC_FILE" "Screenshot of the failed attempt")
+  elif [ "${TEST_STATUS_ARRAY[$TC_INDEX]}" = "PASSED" ]; then
     TC_STATUS="PASSED"
     TC_STATUS_COLOR="#4caf50"
     TC_STATUS_BG="#e8f5e9"
@@ -1187,15 +1255,10 @@ for test_case in "${TEST_CASES[@]}"; do
     TC_STATUS_COLOR="#f44336"
     TC_STATUS_BG="#ffebee"
     TC_ICON="✗"
-    # Embed the failure screenshot as base64 so the HTML stays
-    # self-contained when shared via email / Drive / etc.
-    SCREENSHOT_PATH=$(find_failure_screenshot "$TC_FILE")
-    if [ -n "$SCREENSHOT_PATH" ] && [ -f "$SCREENSHOT_PATH" ]; then
-      B64=$(base64 -i "$SCREENSHOT_PATH" 2>/dev/null | tr -d '\n')
-      SCREENSHOT_CELL="<details style='margin-top:8px;'><summary style='cursor:pointer; color:#1976d2; font-size:12px;'>📸 Failure screenshot</summary><img src='data:image/png;base64,${B64}' style='max-width:280px; border:1px solid #ddd; border-radius:4px; margin-top:6px; display:block;' /></details>"
-    else
-      SCREENSHOT_CELL="<div style='margin-top:8px; color:#999; font-size:11px;'>(no screenshot captured)</div>"
-    fi
+    SCREENSHOT_CELL=$(build_failure_screenshot_cell "$TC_FILE" "Failure screenshot")
+  fi
+  if [ -n "$TC_RETRY_ISSUES" ]; then
+    RETRY_CELL="<div style='margin-top:8px; font-size:11px; color:#8d6e63;'><b>Failed attempts:</b> $(echo "$TC_RETRY_ISSUES" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/ | /<br>/g')</div>"
   fi
   RECORDINGS_CELL=$(build_recording_links "$TC_FILE")
   LATENCY_CELL=$(build_latency_chips "$TC_FILE")
@@ -1206,7 +1269,7 @@ for test_case in "${TEST_CASES[@]}"; do
       <td style='font-weight: 600; color: #2e7d32;'>$TC_ID</td>
       <td>$TC_NAME</td>
       <td style='color: #666; font-size: 13px;'>$TC_DESC</td>
-      <td><span style='background: ${TC_STATUS_BG}; color: ${TC_STATUS_COLOR}; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;'>$TC_ICON $TC_STATUS</span>${SCREENSHOT_CELL}${RECORDINGS_CELL}${LATENCY_CELL}</td>
+      <td><span style='background: ${TC_STATUS_BG}; color: ${TC_STATUS_COLOR}; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;'>$TC_ICON $TC_STATUS</span>${RETRY_CELL}${SCREENSHOT_CELL}${RECORDINGS_CELL}${LATENCY_CELL}</td>
       <td><span style='background: #fff3e0; color: #e65100; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;'>$TC_PRIORITY</span></td>
     </tr>"
 done
@@ -1412,8 +1475,11 @@ echo ""
 GDRIVE_FOLDER_ID="1CsIXNd7CFD-NWFzpPU4guoCbjVj-1s9Y"
 GDRIVE_FOLDER_URL="https://drive.google.com/drive/folders/$GDRIVE_FOLDER_ID"
 
+# SKIP_DRIVE_UPLOAD=1 keeps the report local (e.g. review runs).
+if [ "${SKIP_DRIVE_UPLOAD:-0}" = "1" ]; then
+  echo -e "${YELLOW}Drive upload skipped (SKIP_DRIVE_UPLOAD=1). Report: ${CYAN}$REPORT_FILE${NC}"
 # Check if rclone is configured
-if command -v rclone &> /dev/null; then
+elif command -v rclone &> /dev/null; then
   # Check if gdrive remote exists
   if rclone listremotes | grep -q "gdrive:"; then
     echo -e "${YELLOW}Uploading JSON report to Google Drive...${NC}"

@@ -6,7 +6,7 @@ appId: ${APP_ID}
 # Sign-up tests need a signed-out start, but the runner keeps app
 # state between tests, so an earlier sign-up leaves the user logged
 # in and the drawer's Sign Up entry disappears. This opens Settings
-# and, if settings_btn_auth reads "Logout", logs out and re-onboards;
+# and, if it shows settings_btn_logout (signed in), logs out and re-onboards;
 # otherwise it just returns home. Call it right after
 # complete_onboarding.
 # ============================================================
@@ -17,13 +17,11 @@ appId: ${APP_ID}
 - runFlow:
     when:
       visible:
-        id: "settings_btn_auth"
-        containsChild:
-          text: "Log ?out"
+        id: "settings_btn_logout"
     commands:
       - evalScript: ${output.wasSignedIn = true}
       - tapOn:
-          id: "settings_btn_auth"
+          id: "settings_btn_logout"
       - extendedWaitUntil:
           visible:
             id: "language_screen"

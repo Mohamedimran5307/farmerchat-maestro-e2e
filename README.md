@@ -12,11 +12,11 @@ Maestro_automation_FarmerChat_End_to_End_Flow/
 │   ├── env.local.example.yaml    # Template for secrets — copy to env.local.yaml
 │   └── env.local.yaml            # Gitignored secrets (PHONE_NUMBER, OTP_CODE); overrides env.yaml
 ├── flows/
-│   ├── smoke/                    # Batch 1: TC01–TC11 — smoke suite (must-pass core flows)
-│   ├── core/                     # Batch 2: TC12–TC23 — secondary positive flows
-│   ├── settings_help/            # Batch 3: TC24–TC28
-│   ├── first_launch/             # Batch 4: TC29–TC32
-│   ├── offline/                  # Batch 5: TC33–TC36 (airplane-mode error + retry)
+│   ├── smoke/                    # Batch 1: TC01–TC08 — smoke suite (must-pass core journeys)
+│   ├── core/                     # Batch 2: TC09–TC22 — secondary positive flows
+│   ├── settings_help/            # Batch 3: TC23–TC27
+│   ├── first_launch/             # Batch 4: TC28–TC33
+│   ├── offline/                  # Batch 5: TC34–TC37 (airplane-mode error + retry)
 │   └── onboarding/               # Legacy flows — NOT run by the runners
 ├── helpers/                      # Reusable sub-flows invoked via runFlow:
 │   ├── launch_app.yaml
@@ -117,58 +117,62 @@ tags:
 
 ## Test coverage
 
-Tests are grouped into batches (one folder each) and numbered **TC01–TC36** in batch order. Every
+Tests are grouped into batches (one folder each) and numbered **TC01–TC37** in batch order (display order only — the permanent `FC-…` id is what
+identifies a test across builds). Every
 test is tagged with its batch name, its functional area, and `regression`.
 
-- **Smoke** (`smoke`, TC01–TC11): must-pass core flows, run first on every new build. If smoke fails,
+- **Smoke** (`smoke`, TC01–TC08): must-pass core flows, run first on every new build. If smoke fails,
   the build is rejected before the rest is run.
 - **Functional batches** (`core`, `settings_help`, `first_launch`, `offline`): deeper coverage,
   including the negative/error cases in `offline`.
 - **Regression**: all batches together, run before a release.
 
 `python3 scripts/generate_batch_report.py smoke` builds an HTML report for a batch (results, timings,
-failure reasons and click-to-play videos) as `reports/FarmerChat_<Batch>_v<version>_<device>_<date>.html`.
+failure reasons and click-to-play videos) as `reports/FarmerChat_<Batch>_v<version>_<device>_<date>.html`,
+plus a shareable `…_summary.html` without videos. See `docs/TEST_STRATEGY.md` for the suite charters
+and rules.
 
-| Batch | ID | Test | Priority |
-|---|---|---|---|
-| `smoke` | TC01 | Location-Based Personalization via Weather Widget | P0 |
-| `smoke` | TC02 | Type a Question → AI Response with Suggestions | P0 |
-| `smoke` | TC03 | Home Feed Scrolls + Opens a Card's Chat | P1 |
-| `smoke` | TC04 | Photo Question from Gallery → AI Response | P1 |
-| `smoke` | TC05 | Listen to AI Response (TTS Playback) | P0 |
-| `smoke` | TC06 | Speak Button Opens Voice-Input Overlay | P2 |
-| `smoke` | TC07 | Chat Back (←) Returns to Home | P1 |
-| `smoke` | TC08 | Full Sign Up via Drawer (Phone + OTP → Home) | P0 |
-| `smoke` | TC09 | Full Sign Up via Settings (Phone + OTP → Signed In) | P0 |
-| `smoke` | TC10 | Drawer "See All" Opens Chat History Screen | P1 |
-| `smoke` | TC11 | Sign Up + Logout via Settings | P0 |
-| `core` | TC12 | Chat Follow-up via Suggested Question Tap | P0 |
-| `core` | TC13 | Share AI Response via System Chooser | P1 |
-| `core` | TC14 | Save AI Response Shows Confirmation | P2 |
-| `core` | TC15 | Photo Question from Camera → AI Response | P2 |
-| `core` | TC16 | Gender Card Renders After Sign-Up + Location | P1 |
-| `core` | TC17 | Crops Card Renders After Sign-Up + Location | P1 |
-| `core` | TC18 | Answer Gender Profile-Prompt Card | P2 |
-| `core` | TC19 | Drawer: Change Language | P2 |
-| `core` | TC20 | Drawer "Home" Returns From Help Screen | P2 |
-| `core` | TC21 | Drawer → Sign Up: Phone-Input Screen | P1 |
-| `core` | TC22 | Settings → Sign Up: Phone-Input Screen | P1 |
-| `core` | TC23 | Settings → Sign Up → Skip Returns to Settings | P2 |
-| `settings_help` | TC24 | Settings: Toggle Display Mode (Day / Night / Auto) | P2 |
-| `settings_help` | TC25 | Settings: Update Display Name | P2 |
-| `settings_help` | TC26 | Help: FAQ Accordion Expands With Answer | P2 |
-| `settings_help` | TC27 | Help: Open Terms of Use | P2 |
-| `settings_help` | TC28 | Help: Open Privacy Policy | P2 |
-| `first_launch` | TC29 | Location Interstitial: Skip Returns to Home | P2 |
-| `first_launch` | TC30 | First-Launch: Open Terms of Use from Language Screen | P2 |
-| `first_launch` | TC31 | First-Launch: Verify Privacy Policy Link in Language-Screen Legal Text | P2 |
-| `first_launch` | TC32 | First-Launch: Verify Both Legal Links in Language-Screen Legal Text | P2 |
-| `offline` | TC33 | No-Internet Error Screen Asserts on Cold Start | P2 |
-| `offline` | TC34 | No-Internet Error: Retry Recovers to Language Screen | P2 |
-| `offline` | TC35 | Chat Offline: Inline Error + Retry Recovers | P2 |
-| `offline` | TC36 | Chat History Offline: Error + Retry Loads History | P2 |
+| Batch | TC | Permanent ID | Test | Priority |
+|---|---|---|---|---|
+| `smoke` | TC01 | FC-ONB-01 | Fresh Install: Language → Home → Feed Loads | P0 |
+| `smoke` | TC02 | FC-AGENT-01 | Agentic: Vague Question → Clarification → Answer | P0 |
+| `smoke` | TC03 | FC-CHAT-01 | Typed Question → Answer → Follow-up → Back to Home | P0 |
+| `smoke` | TC04 | FC-FEED-01 | First Feed Card → Ask Now → Answer | P0 |
+| `smoke` | TC05 | FC-PHOTO-01 | Photo Question from Gallery → AI Response | P0 |
+| `smoke` | TC06 | FC-LOC-01 | Weather → Share Location (granted) → Answer | P0 |
+| `smoke` | TC07 | FC-AUTH-01 | Account Lifecycle: Sign Up → History → Log Out | P0 |
+| `smoke` | TC08 | FC-TTS-01 | Listen to AI Response (TTS Playback) *(quarantined)* | P0 |
+| `core` | TC09 | FC-FEED-02 | Home Feed Full Scroll → Back to First Card → Chat | P1 |
+| `core` | TC10 | FC-VOICE-01 | Speak Button Opens Voice-Input Overlay | P2 |
+| `core` | TC11 | FC-AUTH-02 | Full Sign Up via Settings (Phone + OTP → Signed In) | P0 |
+| `core` | TC12 | FC-CHAT-02 | Share AI Response via System Chooser | P1 |
+| `core` | TC13 | FC-CHAT-03 | Save AI Response Shows Confirmation | P2 |
+| `core` | TC14 | FC-PHOTO-02 | Photo Question from Camera → AI Response | P2 |
+| `core` | TC15 | FC-PROF-01 | Gender Card Renders After Sign-Up + Location | P1 |
+| `core` | TC16 | FC-PROF-02 | Crops Card Renders After Sign-Up + Location | P1 |
+| `core` | TC17 | FC-PROF-03 | Answer Gender Profile-Prompt Card | P2 |
+| `core` | TC18 | FC-NAV-01 | Drawer: Change Language | P2 |
+| `core` | TC19 | FC-NAV-02 | Drawer "Home" Returns From Help Screen | P2 |
+| `core` | TC20 | FC-AUTH-03 | Drawer → Sign Up: Phone-Input Screen | P1 |
+| `core` | TC21 | FC-AUTH-04 | Settings → Sign Up: Phone-Input Screen | P1 |
+| `core` | TC22 | FC-AUTH-05 | Settings → Sign Up → Skip Returns to Settings | P2 |
+| `settings_help` | TC23 | FC-SET-01 | Settings: Toggle Display Mode (Day / Night / Auto) | P2 |
+| `settings_help` | TC24 | FC-SET-02 | Settings: Update Display Name | P2 |
+| `settings_help` | TC25 | FC-HELP-01 | Help: FAQ Accordion Expands With Answer | P2 |
+| `settings_help` | TC26 | FC-HELP-02 | Help: Open Terms of Use | P2 |
+| `settings_help` | TC27 | FC-HELP-03 | Help: Open Privacy Policy | P2 |
+| `first_launch` | TC28 | FC-LOC-02 | Location Interstitial: Skip Returns to Home | P2 |
+| `first_launch` | TC29 | FC-LEGAL-01 | First-Launch: Open Terms of Use from Language Screen | P2 |
+| `first_launch` | TC30 | FC-LEGAL-02 | First-Launch: Verify Privacy Policy Link in Language-Screen Legal Text | P2 |
+| `first_launch` | TC31 | FC-LEGAL-03 | First-Launch: Verify Both Legal Links in Language-Screen Legal Text | P2 |
+| `first_launch` | TC32 | FC-LOC-03 | Location Permission Persists After Grant | P1 |
+| `first_launch` | TC33 | FC-LOC-04 | Location Denied → Continue Without Location → Answer | P1 |
+| `offline` | TC34 | FC-ERR-01 | No-Internet Error Screen Asserts on Cold Start | P2 |
+| `offline` | TC35 | FC-ERR-02 | No-Internet Error: Retry Recovers to Language Screen | P2 |
+| `offline` | TC36 | FC-ERR-03 | Chat Offline: Inline Error + Retry Recovers | P2 |
+| `offline` | TC37 | FC-ERR-04 | Chat History Offline: Error + Retry Loads History | P2 |
 
-> The offline-network tests (TC33–TC36) are self-contained: each toggles the radio in-flow via
+> The offline-network tests (TC34–TC37) are self-contained: each toggles the radio in-flow via
 > `setAirplaneMode` and drives its own retry/recovery — no manual network toggling, no required order.
 
 ## Reports

@@ -6,7 +6,7 @@ appId: ${APP_ID}
 # Focuses the composer text field (home or chat screen), types
 # ${QUESTION_TEXT}, hides the IME so Send isn't occluded on cramped
 # displays, and taps Send. Caller is responsible for waiting on the AI answer
-# (e.g. scrollUntilVisible chat_suggested_questions) afterwards.
+# (helpers/wait_for_answer.yaml) afterwards.
 #
 # QUESTION_TEXT is passed by the caller via runFlow env:
 #   - runFlow:

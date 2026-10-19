@@ -1,0 +1,33 @@
+appId: ${APP_ID}
+---
+# ============================================================
+# EXPAND "READ FULL ADVICE" ON A FEED-CARD CHAT (if offered)
+# ============================================================
+# Some cards open with a summary + "Read full advice"; others show the
+# full answer straight away. On a long summary the button sits under the
+# composer, next to the system nav bar — Maestro still reports it
+# visible (by bounds), and tapping there hits the OS Home key, sending
+# the app to the background. So scroll to the bottom first (the chat's
+# ↓ button), then tap the button clear of the composer.
+# ============================================================
+
+- runFlow:
+    when:
+      visible:
+        id: "chat_scroll_bottom_btn"
+    commands:
+      - tapOn:
+          id: "chat_scroll_bottom_btn"
+          waitToSettleTimeoutMs: 500
+- runFlow:
+    when:
+      visible:
+        id: "chat_read_full_advice_btn"
+    commands:
+      - tapOn:
+          id: "chat_read_full_advice_btn"
+          waitToSettleTimeoutMs: 500
+# Still in the app (a mis-tap on the nav bar would leave it).
+- assertVisible:
+    id: "chat_screen"
+    label: "Still in the chat after expanding the advice"

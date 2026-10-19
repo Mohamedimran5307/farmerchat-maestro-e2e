@@ -1,0 +1,104 @@
+appId: ${APP_ID}
+---
+# ============================================================
+# FOLLOW-UP VIA THE FIRST SUGGESTED QUESTION
+# ============================================================
+# Call after wait_for_answer.yaml (which answers any confirmation card —
+# on agentic builds the "You can also ask" suggestions appear only after
+# that, at the end of the chat). Scrolls to the end for the suggestions,
+# taps the first one, then checks:
+#   - the suggestion was sent as the user's message (echo — the app
+#     scrolls it to the top, so the first answer can't pass for the new one),
+#   - the follow-up answer is complete (wait_for_answer.yaml).
+# Functional only: what the answer says is covered by the evals project.
+# No suggestions → logged as a [NOTE] (shown as a warning), not a failure.
+# Optional input: output.followupLabel (default 'followup_answer').
+# ============================================================
+
+- evalScript: ${output.followupDone = false}
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_question_0"
+    direction: DOWN
+    timeout: 15000
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: "chat_suggested_question_0"
+    commands:
+      # The suggestion's text (the row's number "1" is too short to match).
+      # The app's accessibility bug sometimes collapses the row to a 36px
+      # node with no text (like Share/Listen) — then it can't be read.
+      - evalScript: ${output.sugText = ''}
+      - runFlow:
+          when:
+            visible:
+              text: ".{6,}"
+              childOf:
+                id: "chat_suggested_question_0"
+          commands:
+            - copyTextFrom:
+                text: ".{6,}"
+                childOf:
+                  id: "chat_suggested_question_0"
+            - evalScript: ${output.sugText = maestro.copiedText || ''}
+      - evalScript: ${output.sugRe = String(output.sugText).replace(/\\/g, '\\\\').replace(/\?/g, '\\?').replace(/\./g, '\\.').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\*/g, '\\*').replace(/\+/g, '\\+').replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\|/g, '\\|')}
+      - evalScript: ${console.log('[AGENTIC] follow-up suggestion - ' + output.sugText)}
+      - evalScript: ${output.tSend = Date.now()}
+      - evalScript: ${output.answerLabel = output.followupLabel || 'followup_answer'}
+      - tapOn:
+          id: "chat_suggested_question_0"
+          waitToSettleTimeoutMs: 500
+      # A tap that lands while the list is still settling from the scroll
+      # only stops the fling (seen on the Vivo): if the chat hasn't moved
+      # on after a few seconds, tap the suggestion once more.
+      - extendedWaitUntil:
+          notVisible:
+            id: "chat_suggested_questions"
+          timeout: 5000
+          optional: true
+      - runFlow:
+          when:
+            visible:
+              id: "chat_suggested_question_0"
+          commands:
+            - evalScript: ${console.log('[NOTE] First tap on the suggestion was ignored - tapped again')}
+            - evalScript: ${output.tSend = Date.now()}
+            - tapOn:
+                id: "chat_suggested_question_0"
+                waitToSettleTimeoutMs: 500
+      # The chat moved on: the suggestion is echoed as the user's message
+      # (the app scrolls it to the top, so the first answer's row is off
+      # screen and can't pass for the new one). The echo has no
+      # chat_user_message tag (only typed messages and chip echoes do —
+      # requested), so match its text.
+      - runFlow:
+          when:
+            true: ${output.sugText != ''}
+          commands:
+            - extendedWaitUntil:
+                visible:
+                  text: ${output.sugRe}
+                timeout: 10000
+                label: "Suggestion sent as the user's message"
+      # Text unreadable (accessibility bug) → prove the chat moved on by the
+      # earlier suggestions leaving the screen instead.
+      - runFlow:
+          when:
+            true: ${output.sugText == ''}
+          commands:
+            - evalScript: ${console.log('[NOTE] Suggestion text not readable (accessibility bug) - echo checked by the old suggestions leaving the screen')}
+            - extendedWaitUntil:
+                notVisible:
+                  id: "chat_suggested_questions"
+                timeout: 10000
+                label: "Chat moved on after tapping the suggestion"
+      - runFlow: wait_for_answer.yaml
+      - evalScript: ${output.followupDone = true}
+- runFlow:
+    when:
+      true: ${!output.followupDone}
+    commands:
+      - evalScript: ${console.log('[NOTE] Follow-up not tested - no suggested questions after the answer')}

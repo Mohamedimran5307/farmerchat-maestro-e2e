@@ -1,0 +1,96 @@
+appId: ${APP_ID}
+name: "TC33 - Location Denied → Continue Without Location → Answer"
+# id: FC-LOC-04
+# priority: P1
+# description: Weather still works when the user refuses location. From a clean state, taps the weather widget, goes through the share-location screen and taps Don't allow on the system prompt; the chat must open, send the weather question and ask for location with a Share location card. Tapping Continue without location must be echoed as the user's message, and a complete answer must follow (action row or suggestions, no inline error or failure reply, within ANSWER_SLA_MS). Functional only — what the answer says is covered by the evals project.
+tags:
+  - home
+  - regression
+  - first_launch
+---
+- launchApp:
+    clearState: true
+    permissions:
+      location: unset
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+- tapOn:
+    id: "home_weather_button"
+- extendedWaitUntil:
+    visible:
+      id: "location_interstitial_cta_btn"
+    timeout: 15000
+    label: "Share-location screen shown (location not granted yet)"
+- tapOn:
+    id: "location_interstitial_cta_btn"
+- extendedWaitUntil:
+    visible:
+      id: "com.android.permissioncontroller:id/permission_deny_button"
+    timeout: 10000
+    label: "System location prompt shown"
+- tapOn:
+    id: "com.android.permissioncontroller:id/permission_deny_button"
+
+# The chat opens anyway and asks for location in the conversation.
+- extendedWaitUntil:
+    visible:
+      id: "chat_user_message"
+    timeout: 15000
+    label: "Weather question sent as the user's message"
+- extendedWaitUntil:
+    visible: "Share location"
+    timeout: 60000
+    label: "Chat asks for location (it was denied)"
+
+# Decline in the chat too. Not via wait_for_answer: it would tap
+# "Give permission" (the first chip) on this card.
+- tapOn: "Continue without location"
+- evalScript: ${output.tSend = Date.now()}
+- extendedWaitUntil:
+    visible:
+      id: "chat_user_message"
+      containsDescendants:
+        - text: "Continue without location"
+    timeout: 10000
+    label: "Choice echoed as the user's message"
+
+# A complete answer follows without location.
+- extendedWaitUntil:
+    visible:
+      text: "Getting your .*"
+    timeout: 4000
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      text: "Getting your .*"
+    timeout: 90000
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_share_btn|chat_suggested_questions"
+    direction: DOWN
+    timeout: 15000
+    label: "Scroll to the end of the answer"
+- assertVisible:
+    id: "chat_share_btn|chat_suggested_questions"
+    label: "Answer completed without location"
+- assertNotVisible:
+    id: "chat_retry_btn"
+    label: "Answer is not the inline error"
+- assertNotVisible:
+    text: "(?is).*(had a problem just now|ask your question again).*"
+    childOf:
+      id: "chat_ai_message"
+    label: "Answer is not the 'Sorry, I had a problem' failure reply"
+- evalScript: ${output.answerMs = Date.now() - output.tSend}
+- evalScript: ${console.log('[ANSWER-LATENCY] no_location_answer_ms=' + output.answerMs)}
+- assertTrue:
+    condition: "${output.answerMs <= (typeof ANSWER_SLA_MS === 'undefined' ? 60000 : Number(ANSWER_SLA_MS))}"
+    label: "Answer within ANSWER_SLA_MS"
+
+- tapOn:
+    id: "appbar_logo_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000

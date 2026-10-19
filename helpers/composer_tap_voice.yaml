@@ -3,22 +3,24 @@ appId: ${APP_ID}
 # ============================================================
 # TAP THE COMPOSER VOICE BUTTON
 # ============================================================
-# Opens the "Listening..." voice-input overlay. Tries the "Voice"
-# content-desc (4.1.5 exposes no id yet — composer_voice_button is
-# requested in TESTTAG_REQUESTS.md), then the legacy
-# primary_input_speak_btn. Grants the RECORD_AUDIO runtime prompt if
-# it appears (first voice tap on a fresh install; CI pre-grants it).
+# Opens voice input. Grants the RECORD_AUDIO runtime prompt if it
+# appears (first voice tap on a fresh install; CI pre-grants it).
+# Tries, in order: the composer testTag (composer_voice_button, 4.1.7+), the
+# legacy primary_input_speak_btn (old Photo/Speak/Type UI behind a remote flag),
+# then the "Voice" label (older 4.1.x builds without the tag).
+# Short settle timeout: the composer border animates continuously.
 # ============================================================
 
 - evalScript: ${output.composerVoice = false}
 
 - runFlow:
     when:
-      visible: "Voice"
+      visible:
+        id: "composer_voice_button"
     commands:
       - evalScript: ${output.composerVoice = true}
       - tapOn:
-          text: "Voice"
+          id: "composer_voice_button"
           waitToSettleTimeoutMs: 500
 
 - runFlow:
@@ -30,6 +32,16 @@ appId: ${APP_ID}
       - evalScript: ${output.composerVoice = true}
       - tapOn:
           id: "primary_input_speak_btn"
+
+- runFlow:
+    when:
+      true: ${!output.composerVoice}
+      visible: "Voice"
+    commands:
+      - evalScript: ${output.composerVoice = true}
+      - tapOn:
+          text: "Voice"
+          waitToSettleTimeoutMs: 500
 - assertTrue: ${output.composerVoice}
 
 - runFlow: grant_runtime_permission.yaml

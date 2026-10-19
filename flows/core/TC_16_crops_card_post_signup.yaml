@@ -1,0 +1,33 @@
+appId: ${APP_ID}
+name: "TC16 - Crops Card Renders After Sign-Up + Location"
+# id: FC-PROF-02
+# priority: P1
+# requires: PHONE_NUMBER,OTP_CODE
+# description: End-to-end sign-up + profile-card test: completes phone+OTP sign-up, grants location via the weather widget, returns home, and confirms that a 'crops do you grow' profile-prompt card renders on the home feed (the card is Firebase-flag gated and will not appear when the flag is off).
+tags:
+  - home
+  - regression
+  - core
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+- runFlow: ../../helpers/full_signup.yaml
+- runFlow: ../../helpers/weather_share_location_and_back_home.yaml
+
+# ── Assert the crops question card renders on the feed ──
+# This card is served by Firebase remote config; if the flag is off the
+# card never appears and this assertion will fail loudly — that's
+# intentional, the whole point of this TC.
+- extendedWaitUntil:
+    visible:
+      id: "home_feed_list"
+    timeout: 15000
+- scrollUntilVisible:
+    centerElement: true
+    element:
+      text: ".*crops do you grow.*"
+    direction: DOWN
+    timeout: 60000
+    speed: 40
+- assertVisible:
+    text: ".*crops do you grow.*"

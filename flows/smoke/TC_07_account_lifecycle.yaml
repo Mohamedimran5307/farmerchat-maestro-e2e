@@ -1,0 +1,88 @@
+appId: ${APP_ID}
+name: "TC07 - Account Lifecycle: Sign Up → History → Log Out"
+# id: FC-AUTH-01
+# priority: P0
+# requires: PHONE_NUMBER,OTP_CODE
+# description: One sign-up, end to end. Signs up from the side menu with phone + OTP and confirms the account is really signed in (Settings shows Logout). Asks a question tagged with a unique run id, finds that exact conversation in Chat History and reopens it, so an older chat from a previous run can't produce a false pass. Then logs out from Settings, relaunches, and confirms the session is gone (language screen, not home).
+# VERIFY ON DEVICE: that Chat History rows show the question text (the
+# unique run id is matched there).
+tags:
+  - auth
+  - chat
+  - regression
+  - smoke
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+# ── Sign up (logs out first if a previous test left a session) ──
+- runFlow: ../../helpers/full_signup.yaml
+- runFlow: ../../helpers/navigate_to_settings.yaml
+- assertVisible:
+    id: "settings_btn_logout"
+    label: "Signed in: Settings offers Logout"
+- back
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 10000
+
+# ── Seed history with a question only this run could have asked ──
+- evalScript: ${output.runTag = 'run' + String(Date.now()).slice(-6)}
+- runFlow: ../../helpers/composer_focus_text.yaml
+- inputText: ${'How to grow maize, test ' + output.runTag}
+- hideKeyboard
+- runFlow: ../../helpers/composer_send.yaml
+- evalScript: ${output.answerLabel = 'history_seed_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+- tapOn:
+    id: "appbar_logo_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000
+
+# ── Side menu → See all → that exact conversation → reopens ──
+- tapOn:
+    id: "home_hamburger_button"
+- extendedWaitUntil:
+    visible:
+      id: "drawer_see_all_btn"
+    timeout: 10000
+- tapOn:
+    id: "drawer_see_all_btn"
+- extendedWaitUntil:
+    visible:
+      id: "chat_history_list"
+    timeout: 15000
+- tapOn:
+    text: ${'.*' + output.runTag + '.*'}
+- extendedWaitUntil:
+    visible:
+      id: "chat_screen"
+    timeout: 15000
+- assertVisible:
+    text: ${'.*' + output.runTag + '.*'}
+    label: "Reopened conversation is this run's question"
+
+# ── Log out, then relaunch: the session must be gone ──
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000
+- runFlow: ../../helpers/navigate_to_settings.yaml
+- tapOn:
+    id: "settings_btn_logout"
+- extendedWaitUntil:
+    visible:
+      id: "language_screen"
+    timeout: 15000
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "language_screen"
+    timeout: 15000
+- assertNotVisible:
+    id: "home_screen"
+    label: "Still logged out after relaunch"

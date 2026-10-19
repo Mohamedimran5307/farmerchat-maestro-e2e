@@ -11,17 +11,12 @@ appId: ${APP_ID}
 # grant_location.yaml directly.
 # ============================================================
 
+- evalScript: ${output.tSend = Date.now()}
+- evalScript: ${output.answerLabel = 'weather_answer'}
 - runFlow: grant_location.yaml
-# After granting location, the weather/location card opens a chat — scroll to its related-questions block
-- scrollUntilVisible:
-    centerElement: true
-    element:
-      id: "chat_suggested_questions"
-    direction: DOWN
-    timeout: 90000
-    speed: 75   
-- assertVisible:
-    id: "chat_suggested_questions"
+# The weather/location card opens a chat: wait for its complete answer
+# (no scrolling while it is generated; handles agentic chips).
+- runFlow: wait_for_answer.yaml
 
 # grant_location lands on the location-triggered chat. Close it by pressing the back button.
 - back

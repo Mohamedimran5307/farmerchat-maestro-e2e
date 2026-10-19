@@ -1,0 +1,87 @@
+appId: ${APP_ID}
+name: "TC06 - Weather → Share Location (granted) → Answer"
+# id: FC-LOC-01
+# priority: P0
+# description: Location sharing from the weather widget, every step required. Starts from a clean install state (no saved location, location permission never asked), so the grant path must run: the weather button shows a temperature; tapping it must open the share-location screen, then the system location prompt (allowed); the weather question must be sent as the user's message; a complete answer must arrive (no inline error or failure reply, real text, within ANSWER_SLA_MS) without the chat asking for location again, showing its Share button and the follow-up questions; back returns home. That the permission persists is FC-LOC-03 and the denied path FC-LOC-04 (first_launch batch). Functional only — what the answer says is covered by the evals project.
+tags:
+  - home
+  - regression
+  - smoke
+---
+# Clean state so the grant path runs on every run: the app skips the
+# share-location screen when it has a saved location from an earlier
+# run, and Android stops showing the prompt after repeated denials — so
+# clear the app data and reset location to "never asked" (unset), not
+# "denied".
+- launchApp:
+    clearState: true
+    permissions:
+      location: unset
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+- assertVisible:
+    id: "home_weather_button"
+    containsDescendants:
+      - text: ".*°.*"
+    label: "Weather button shows a temperature"
+
+# ── First visit: the whole grant path must run (location not granted) ──
+- tapOn:
+    id: "home_weather_button"
+- extendedWaitUntil:
+    visible:
+      id: "location_interstitial_cta_btn"
+    timeout: 15000
+    label: "Share-location screen shown (location not granted yet)"
+- tapOn:
+    id: "location_interstitial_cta_btn"
+- extendedWaitUntil:
+    visible:
+      id: "com.android.permissioncontroller:id/permission_allow_foreground_only_button|com.android.permissioncontroller:id/permission_allow_button"
+    timeout: 10000
+    label: "System location prompt shown"
+- runFlow: ../../helpers/grant_runtime_permission.yaml
+- evalScript: ${output.tSend = Date.now()}
+# Google's location-accuracy pop-up (device-dependent).
+- runFlow:
+    when:
+      visible: "No thanks"
+    commands:
+      - tapOn: "No thanks"
+- extendedWaitUntil:
+    visible:
+      id: "chat_user_message"
+    timeout: 15000
+    label: "Weather question sent as the user's message"
+- evalScript: ${output.answerLabel = 'weather_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+- assertNotVisible:
+    text: "Share location"
+    label: "Chat didn't ask for location after it was granted"
+- scrollUntilVisible:
+    centerElement: true
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 15000
+    label: "Scroll to the follow-up questions"
+- assertVisible:
+    id: "chat_suggested_questions"
+    label: "Follow-up questions shown after the answer"
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_share_btn"
+    direction: UP
+    timeout: 10000
+    label: "Scroll to the Share button"
+- assertVisible:
+    id: "chat_share_btn"
+    label: "Share button shown on the answer"
+- tapOn:
+    id: "appbar_logo_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000
+    label: "Back on the home screen"

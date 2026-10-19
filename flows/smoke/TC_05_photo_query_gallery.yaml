@@ -1,0 +1,99 @@
+appId: ${APP_ID}
+name: "TC05 - Photo Question from Gallery → AI Response"
+# id: FC-PHOTO-01
+# priority: P0
+# description: Verifies the photo-based chat flow via the system gallery picker: taps the composer Camera button, picks Photos, selects the test image (farmerchat_test_tomato.jpg, pushed by the runner), sends it as a chat question, and confirms a complete answer arrives (no inline error or failure reply, real text, within ANSWER_SLA_MS) showing its Share button and the follow-up questions. Functional only — what the answer says is covered by the evals project.
+# Needs the runner to push test_assets/crop_disease.jpg to the device as
+# Pictures/farmerchat_test_tomato.jpg first, so the test never uploads a
+# personal photo and always asks about the same known image.
+tags:
+  - home
+  - chat
+  - regression
+  - smoke
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+# Tap the composer Camera button → in-app Camera/Photos sheet, then
+# pick Photos (gallery). The sheet is skipped on the legacy UI.
+- runFlow: ../../helpers/composer_tap_photo.yaml
+- runFlow:
+    when:
+      visible:
+        id: "chat_photo_input_sheet"
+    commands:
+      - tapOn:
+          id: "chat_photo_input_gallery_btn"
+
+# Android opens one of two pickers depending on the device:
+#   - Files (documentsui, e.g. Vivo): "Recent images" grid, items labelled
+#     "<file name>, <size>, <date>" → pick the test image by name.
+#   - Photo picker (e.g. OPPO): "Photo taken on …" thumbnails, newest
+#     first → the freshly pushed test image is the first one.
+- extendedWaitUntil:
+    visible:
+      text: "(farmerchat_test_tomato.*|Photo taken on.*)"
+    timeout: 15000
+- evalScript: ${output.photoPicked = false}
+- runFlow:
+    when:
+      visible:
+        text: "farmerchat_test_tomato.*"
+    commands:
+      - evalScript: ${output.photoPicked = true}
+      - tapOn:
+          text: "farmerchat_test_tomato.*"
+- runFlow:
+    when:
+      true: ${!output.photoPicked}
+      visible:
+        text: "Photo taken on.*"
+    commands:
+      - evalScript: ${output.photoPicked = true}
+      - tapOn:
+          text: "Photo taken on.*"
+          index: 0
+- assertTrue: ${output.photoPicked}
+
+# Back in the app's composer with the photo attached — send it.
+- extendedWaitUntil:
+    visible: "Send"
+    timeout: 15000
+- runFlow: ../../helpers/composer_send.yaml
+
+# The photo really went out in the user's message. Soft until the app
+# tags the image (requested: chat_user_message_image) — then make this a
+# hard check by removing "optional".
+- extendedWaitUntil:
+    visible:
+      id: "chat_user_message_image"
+    timeout: 3000
+    optional: true
+    label: "Photo shown in the user's message (soft check until tagged)"
+- evalScript: ${output.answerLabel = 'photo_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+
+# The answer ends with its action row and the follow-up questions
+# ("You can also ask"; on agentic builds they come after any confirmation
+# card). What the answer says is covered by the evals project.
+- scrollUntilVisible:
+    centerElement: true
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 10000
+    label: "Scroll to the follow-up questions"
+- assertVisible:
+    id: "chat_suggested_questions"
+    label: "Follow-up questions shown after the answer"
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_share_btn"
+    direction: UP
+    timeout: 5000
+    label: "Scroll to the Share button"
+- assertVisible:
+    id: "chat_share_btn"
+    label: "Share button shown on the answer"

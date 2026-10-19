@@ -1,0 +1,75 @@
+appId: ${APP_ID}
+name: "TC32 - Location Permission Persists After Grant"
+# id: FC-LOC-03
+# priority: P1
+# description: Granting location once is remembered by the app. From a clean state (no saved location, permission never asked), taps the weather widget, goes through the share-location screen and allows the system prompt; the chat must open and send the weather question. Back on home, a second weather tap must open the chat directly — no share-location screen, no system prompt — and send the question again. Doesn't wait for the answers (the weather answer itself is FC-LOC-01).
+tags:
+  - home
+  - regression
+  - first_launch
+---
+- launchApp:
+    clearState: true
+    permissions:
+      location: unset
+- runFlow: ../../helpers/complete_onboarding.yaml
+
+# ── Grant once ──
+- tapOn:
+    id: "home_weather_button"
+- extendedWaitUntil:
+    visible:
+      id: "location_interstitial_cta_btn"
+    timeout: 15000
+    label: "Share-location screen shown (location not granted yet)"
+- tapOn:
+    id: "location_interstitial_cta_btn"
+- extendedWaitUntil:
+    visible:
+      id: "com.android.permissioncontroller:id/permission_allow_foreground_only_button|com.android.permissioncontroller:id/permission_allow_button"
+    timeout: 10000
+    label: "System location prompt shown"
+- runFlow: ../../helpers/grant_runtime_permission.yaml
+# Google's location-accuracy pop-up (device-dependent).
+- runFlow:
+    when:
+      visible: "No thanks"
+    commands:
+      - tapOn: "No thanks"
+- extendedWaitUntil:
+    visible:
+      id: "chat_user_message"
+    timeout: 15000
+    label: "Weather question sent as the user's message"
+- tapOn:
+    id: "appbar_logo_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000
+
+# ── Second visit: straight to the chat ──
+- tapOn:
+    id: "home_weather_button"
+- extendedWaitUntil:
+    visible:
+      id: "chat_screen"
+    timeout: 15000
+    label: "Second visit opens the chat directly"
+- assertNotVisible:
+    id: "location_interstitial_cta_btn"
+    label: "No share-location screen on a second visit"
+- assertNotVisible:
+    id: "com.android.permissioncontroller:id/permission_allow_foreground_only_button|com.android.permissioncontroller:id/permission_allow_button"
+    label: "No system permission prompt on a second visit"
+- extendedWaitUntil:
+    visible:
+      id: "chat_user_message"
+    timeout: 15000
+    label: "Second visit sends the weather question"
+- tapOn:
+    id: "appbar_logo_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 15000

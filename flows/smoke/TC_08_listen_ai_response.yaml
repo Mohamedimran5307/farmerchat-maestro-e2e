@@ -1,0 +1,68 @@
+appId: ${APP_ID}
+name: "TC08 - Listen to AI Response (TTS Playback)"
+# id: FC-TTS-01
+# priority: P0
+# quarantine: App bug (still in 4.1.7) — after an answer the Share/Listen row intermittently drops out of the accessibility tree (chat_listen_btn shrinks to ~27px, then disappears; Share shrinks to ~36px), so Listen can't be found. Tracked in TESTTAG_REQUESTS_CRITICAL.md. Un-quarantine once fixed.
+# description: Text-to-speech on an AI answer. Asks a typed question, waits for a real answer (no inline error, within ANSWER_SLA_MS), then taps Listen and follows the playback state through its language-independent tags: idle → playing (after the TTS engine loads) → paused on a second tap.
+tags:
+  - home
+  - chat
+  - regression
+  - smoke
+---
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+- runFlow:
+    file: ../../helpers/compose_typed_question.yaml
+    env:
+      QUESTION_TEXT: "What are common tomato diseases"
+- evalScript: ${output.answerLabel = 'tts_question_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+
+# Bring the action row (right after the answer text) on screen. Where the
+# screen ends up depends on the answer's length and what follows it
+# (suggestions or confirmation chips), so look in place, then below, then
+# above — slowly, so a scroll doesn't skip past the row. No centering: near
+# the end of the chat the row can't reach the middle of the screen.
+- runFlow:
+    when:
+      notVisible:
+        id: "chat_listen_btn"
+    commands:
+      - scrollUntilVisible:
+          centerElement: false
+          element:
+            id: "chat_listen_btn"
+          direction: DOWN
+          timeout: 15000
+          speed: 20
+          optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: "chat_listen_btn"
+    commands:
+      - scrollUntilVisible:
+          centerElement: false
+          element:
+            id: "chat_listen_btn"
+          direction: UP
+          timeout: 15000
+          speed: 20
+
+# Playback state via testTags (4.1.7+): idle → loading → playing → paused.
+- assertVisible:
+    id: "chat_listen_state_idle"
+- tapOn:
+    id: "chat_listen_btn"
+# The TTS engine fetches audio first (loading); a cold engine can take 20–40s.
+- extendedWaitUntil:
+    visible:
+      id: "chat_listen_state_playing"
+    timeout: 60000
+- tapOn:
+    id: "chat_listen_btn"
+- extendedWaitUntil:
+    visible:
+      id: "chat_listen_state_paused"
+    timeout: 5000
