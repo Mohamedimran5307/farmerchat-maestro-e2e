@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC26 - Help: Open Terms of Use"
 # id: FC-HELP-02
 # priority: P2
-# description: Verifies the Terms of Use entry in the Help screen: opens Help from the drawer, taps the Terms of Use entry, and confirms the legal document loads.
+# description: Help opens the Terms of Use.
 # TODO: help_terms_of_use testTag carries over from the old APK and
 # needs a live-device confirmation on the new build. May now be
 # help_btn_terms or similar.

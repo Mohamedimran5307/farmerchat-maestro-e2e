@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC04 - First Feed Card → Ask Now → Answer"
 # id: FC-FEED-01
 # priority: P0
-# description: The home feed's main call to action. Waits for the feed, notes the first content card's question, taps that card's Ask Now, and confirms the chat opens on the same question and shows an answer (expanding "Read full advice" when the card offers it) without an error and within ANSWER_SLA_MS. Full-feed scrolling is covered by FC-FEED-02 in the core batch. The answer must show its Share button and the follow-up questions (tapping one is covered by FC-CHAT-01).
+# description: First feed card's Ask Now opens a chat with a complete answer.
 tags:
   - home
   - regression

@@ -147,18 +147,13 @@ and before release.
 
 ## 7. Reporting
 
-`python3 scripts/generate_batch_report.py <batch>` writes two pages to `reports/`:
+There is **one** report: every run of `run_tests.sh` writes
+`reports/FarmerChat_TestReport_<tester>_<date>.html` (and the same data as JSON for CI). It stays
+local, because the videos it links to show test credentials being typed.
 
-- **Detailed** (`FarmerChat_<Batch>_v<version>_<device>_<date>.html`), for the QA team: results,
-  duration, answer latency, step timings, failing step and reason, failure screenshot, and
-  click-to-play video. Stays local, because the videos show test credentials being typed.
-- **Summary** (`…_summary.html`), for stakeholders: the same without videos or screenshots. Safe to
-  share.
-
-Every report shows the build, the device and the date, plus per test: the permanent ID, its result
-(passed, failed, quarantined, or not run), the reason for any failure, soft-check warnings, and
-answer latency against the time limit. A run older than the test's last change counts as **not
-run**.
+The report shows the device and the date, plus per test: its result (passed, flaky — passed only on
+a retry, or failed), a one-line description, the reason and screenshot for every failed attempt,
+the videos and the answer latency.
 
 **Triage every failure into one category** and record it next to the failure:
 

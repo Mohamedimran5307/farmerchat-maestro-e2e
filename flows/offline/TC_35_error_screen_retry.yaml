@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC35 - No-Internet Error: Retry Recovers to Language Screen"
 # id: FC-ERR-02
 # priority: P2
-# description: Self-contained recovery test for the global no-internet error. Enables airplane mode, cold-starts the app to surface the error screen, then disables airplane mode and taps retry until the app recovers to the first-launch language screen. Network toggling is driven entirely by Maestro (setAirplaneMode) — no manual intervention.
+# description: Try again after going back online recovers from the no-internet screen.
 tags:
   - error
   - regression

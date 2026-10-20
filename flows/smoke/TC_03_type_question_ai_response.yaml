@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC03 - Typed Question → Answer → Follow-up → Back to Home"
 # id: FC-CHAT-01
 # priority: P0
-# description: The core chat journey, functional only (what the AI says is covered by the evals project), on non-agentic and agentic builds. Types a question and sends it, taps the first chip of any clarification or confirmation, and checks a complete answer arrives (action row or suggestions, no inline error or failure reply, real text, within ANSWER_SLA_MS) showing its follow-up questions and Share button. Then taps the first follow-up question and checks the chat moves on and a complete follow-up answer arrives. Returns home via the back arrow.
+# description: Typed question gets a complete answer; a follow-up question gets one too.
 tags:
   - home
   - chat

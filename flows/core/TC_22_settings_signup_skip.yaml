@@ -3,7 +3,7 @@ name: "TC22 - Settings → Sign Up → Skip Returns to Settings"
 # id: FC-AUTH-05
 # priority: P2
 # requires: PHONE_NUMBER,OTP_CODE
-# description: Validates the Skip path on the account-benefits intermediate screen: enters the sign-up flow from Settings, taps Skip, and confirms the user is returned to the Settings screen without completing sign-up.
+# description: Skipping sign-up from Settings returns to Settings.
 # TODO: The "Skip" CTA on the account-benefits screen doesn't have a
 # confirmed testTag yet. Currently using a text:"Skip" matcher; once
 # the new APK is inspected, replace with an id like

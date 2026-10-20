@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC33 - Location Denied → Continue Without Location → Answer"
 # id: FC-LOC-04
 # priority: P1
-# description: Weather still works when the user refuses location. From a clean state, taps the weather widget, goes through the share-location screen and taps Don't allow on the system prompt; the chat must open and ask for location with a Share location card. After tapping Continue without location a complete answer must follow (action row or suggestions, no inline error or failure reply, within ANSWER_SLA_MS). Functional only — what the answer says is covered by the evals project.
+# description: With location denied, weather still answers after Continue without location.
 tags:
   - home
   - regression

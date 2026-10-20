@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC29 - First-Launch: Open Terms of Use from Language Screen"
 # id: FC-LEGAL-01
 # priority: P2
-# description: Verifies the Terms of Use link on the first-launch language screen: on a fresh-install state, picks the configured language so the inline legal text renders, taps the Terms of Use link, and confirms the Terms document opens.
+# description: Language screen's Terms of Use link opens the document.
 # Note: on this APK build the language_legal_text + Terms of Use /
 # Privacy Policy links only become visible AFTER a language is
 # selected from language_item_${LANGUAGE_CODE}. The original

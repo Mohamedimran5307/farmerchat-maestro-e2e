@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC18 - Drawer: Change Language"
 # id: FC-NAV-01
 # priority: P2
-# description: Validates the language-change flow from the drawer: opens the language chooser, selects the configured language, saves, and confirms a language-updated confirmation message appears.
+# description: Changing the language from the side menu shows a confirmation.
 # TODO: language_chooser_screen and language_chooser_save_button
 # testTags carry over from the old APK; the new APK may use the same
 # language_screen / language_start_button ids the first-launch flow

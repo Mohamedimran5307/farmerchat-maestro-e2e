@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC27 - Help: Open Privacy Policy"
 # id: FC-HELP-03
 # priority: P2
-# description: Verifies the Privacy Policy entry in the Help screen: opens Help from the drawer, taps the Privacy Policy entry, and confirms the legal document loads.
+# description: Help opens the Privacy Policy.
 # TODO: help_privacy_policy testTag and the "LAST UPDATED: DECEMBER 2025"
 # date string both carry over from the old APK. The date will need
 # bumping with each privacy-policy revision — consider replacing

@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC05 - Photo Question from Gallery → AI Response"
 # id: FC-PHOTO-01
 # priority: P0
-# description: Verifies the photo-based chat flow via the system gallery picker: taps the composer Camera button, picks Photos, selects the test image (farmerchat_test_tomato.jpg, pushed by the runner), sends it as a chat question, and confirms a complete answer arrives (no inline error or failure reply, real text, within ANSWER_SLA_MS) showing its Share button and the follow-up questions. Functional only — what the answer says is covered by the evals project.
+# description: A gallery photo sent as a question gets a complete answer.
 # Needs the runner to push test_assets/crop_disease.jpg to the device as
 # Pictures/farmerchat_test_tomato.jpg first, so the test never uploads a
 # personal photo and always asks about the same known image.

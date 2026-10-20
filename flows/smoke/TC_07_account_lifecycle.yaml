@@ -3,7 +3,7 @@ name: "TC07 - Account Lifecycle: Sign Up → History → Log Out"
 # id: FC-AUTH-01
 # priority: P0
 # requires: PHONE_NUMBER,OTP_CODE
-# description: One sign-up, end to end. Signs up from the side menu with phone + OTP and confirms the account is really signed in (Settings shows Logout). Asks a question tagged with a unique run id, finds that exact conversation in Chat History and reopens it, so an older chat from a previous run can't produce a false pass. Then logs out from Settings, relaunches, and confirms the session is gone (language screen, not home).
+# description: Sign up, find this run's chat in history, log out, stay logged out.
 # VERIFY ON DEVICE: that Chat History rows show the question text (the
 # unique run id is matched there).
 tags:

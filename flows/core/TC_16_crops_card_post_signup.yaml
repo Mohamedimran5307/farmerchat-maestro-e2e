@@ -3,7 +3,7 @@ name: "TC16 - Crops Card Renders After Sign-Up + Location"
 # id: FC-PROF-02
 # priority: P1
 # requires: PHONE_NUMBER,OTP_CODE
-# description: End-to-end sign-up + profile-card test: completes phone+OTP sign-up, grants location via the weather widget, returns home, and confirms that a 'crops do you grow' profile-prompt card renders on the home feed (the card is Firebase-flag gated and will not appear when the flag is off).
+# description: After sign-up and location, the crops card shows on the feed.
 tags:
   - home
   - regression

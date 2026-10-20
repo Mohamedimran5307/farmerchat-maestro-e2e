@@ -3,7 +3,7 @@ name: "TC02 - Agentic: Vague Question → Clarification → Answer"
 # id: FC-AGENT-01
 # priority: P0
 # requires: AGENTIC=true
-# description: Positive proof that the agentic chat works. From a clean install (no crop, no location known), sends a deliberately vague question and REQUIRES the agent to ask a clarification card (chat_clarification_card) instead of answering blindly — fails if it never asks. Taps the first chip of each card (photo card: the 3rd chip, continue without a photo) and the first chip of any confirmation, waiting for the agent between taps. Then a complete answer must arrive (action row, no inline error or failure reply, real text, within ANSWER_SLA_MS) showing its follow-up questions and Share button. Functional only — what the AI says is covered by the evals project.
+# description: A vague question gets a clarification card, then a complete answer.
 tags:
   - chat
   - regression

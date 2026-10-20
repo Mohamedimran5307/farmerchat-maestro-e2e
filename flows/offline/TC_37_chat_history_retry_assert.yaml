@@ -3,7 +3,7 @@ name: "TC37 - Chat History Offline: Error + Retry Loads History"
 # id: FC-ERR-04
 # priority: P2
 # requires: PHONE_NUMBER,OTP_CODE
-# description: Self-contained chat-history offline/recovery test. Signs up online, seeds chat history with a 'wheat' question, returns home, goes offline and opens Chat History to surface the global no-internet error, then restores network, retries, and confirms the seeded conversation loads. Network toggling is driven entirely by Maestro (setAirplaneMode) — no manual intervention.
+# description: Chat history offline shows the error; Retry online loads the chat.
 tags:
   - chat
   - error

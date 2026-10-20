@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC14 - Photo Question from Camera → AI Response"
 # id: FC-PHOTO-02
 # priority: P2
-# description: Verifies the photo-based chat flow via the device camera: taps the composer Camera button, picks the Camera option, captures and accepts a photo, sends it as a chat question, and confirms an AI answer renders with its suggested-questions block.
+# description: A camera photo sent as a question gets a complete answer.
 # TODO: This test depends on the device's native camera UI
 # (com.android.camera2 testTags are AOSP-specific). On the Redmi
 # device under test the camera package may be different — e.g.

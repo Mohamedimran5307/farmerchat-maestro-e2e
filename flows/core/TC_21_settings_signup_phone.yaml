@@ -3,7 +3,7 @@ name: "TC21 - Settings → Sign Up: Phone-Input Screen"
 # id: FC-AUTH-04
 # priority: P1
 # requires: PHONE_NUMBER,OTP_CODE
-# description: Verifies the sign-up entry point from the Settings screen: taps the auth entry (Sign Up label when signed out), traverses the optional account-benefits intermediate screen, and confirms the phone-input screen appears.
+# description: Settings Sign up opens the phone-number screen.
 tags:
   - settings
   - auth

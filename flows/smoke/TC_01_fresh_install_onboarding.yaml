@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC01 - Fresh Install: Language → Home → Feed Loads"
 # id: FC-ONB-01
 # priority: P0
-# description: A brand-new user's first launch. Clears all app data, expects the language screen, picks the configured language, starts the app (allowing the notification prompt if shown), and confirms home renders with the weather button, the composer and at least one feed card. Fails on the no-internet screen instead of retrying past it.
+# description: Fresh install: pick a language and land on home with the feed loaded.
 tags:
   - onboarding
   - regression

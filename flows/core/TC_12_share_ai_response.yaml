@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC12 - Share AI Response via System Chooser"
 # id: FC-CHAT-02
 # priority: P1
-# description: Verifies the Share action on an AI answer: sends a typed question, waits for the answer to fully render (suggestions visible), taps the action-row Share button, and confirms that the Android share chooser opens.
+# description: Share on an answer opens the Android share sheet.
 # TODO: chat_share_btn lost its testTag on some builds of the new APK.
 # If the lookup starts timing out, fall back to a text:"Share" matcher
 # or escalate to the app team.

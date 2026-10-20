@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC09 - Home Feed Full Scroll → Back to First Card → Chat"
 # id: FC-FEED-02
 # priority: P1
-# description: Verifies scrolling through the whole home feed: notes the first content card's question at the top, scrolls card by card to the end of the feed (detected by the feed no longer moving), flicks back fast until that first card returns, taps its Ask Now, and confirms the chat opens on that same question with an answer and suggestions.
+# description: Scroll the whole feed, return to the first card, and open its chat.
 tags:
   - home
   - regression

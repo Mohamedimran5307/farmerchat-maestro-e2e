@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC25 - Help: FAQ Accordion Expands With Answer"
 # id: FC-HELP-01
 # priority: P2
-# description: Validates the FAQ accordion in the Help screen: opens Help from the drawer, taps the first FAQ question, and confirms the accordion expands to reveal its associated answer body.
+# description: Tapping an FAQ question in Help expands its answer.
 # TODO: help_list_faqs / help_faq_item_0 (renamed from faqs-en / faq-01-en
 # in 4.1.x) need a live-device confirmation on the new build. The FAQ
 # question text ("What is FarmerChat...") and answer body may also

@@ -3,7 +3,7 @@ name: "TC11 - Full Sign Up via Settings (Phone + OTP → Signed In)"
 # id: FC-AUTH-02
 # priority: P0
 # requires: PHONE_NUMBER,OTP_CODE
-# description: Complete end-to-end sign-up from the Settings entry point: opens Side menu → Settings, taps Sign Up, submits the configured phone number and OTP, taps Continue on the account-success screen, and confirms the user is signed in (Settings auth entry now reads Logout).
+# description: Sign up from Settings with phone and OTP; Settings then shows Logout.
 tags:
   - settings
   - auth

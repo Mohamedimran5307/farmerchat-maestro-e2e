@@ -3,7 +3,7 @@ name: "TC08 - Listen to AI Response (TTS Playback)"
 # id: FC-TTS-01
 # priority: P0
 # quarantine: App bug (still in 4.1.7) — after an answer the Share/Listen row intermittently drops out of the accessibility tree (chat_listen_btn shrinks to ~27px, then disappears; Share shrinks to ~36px), so Listen can't be found. Tracked in TESTTAG_REQUESTS_CRITICAL.md. Un-quarantine once fixed.
-# description: Text-to-speech on an AI answer. Asks a typed question, waits for a real answer (no inline error, within ANSWER_SLA_MS), then taps Listen and follows the playback state through its language-independent tags: idle → playing (after the TTS engine loads) → paused on a second tap.
+# description: Listen plays an answer aloud and pauses on a second tap.
 tags:
   - home
   - chat

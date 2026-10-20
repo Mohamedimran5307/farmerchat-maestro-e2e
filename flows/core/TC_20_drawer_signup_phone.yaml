@@ -3,7 +3,7 @@ name: "TC20 - Drawer → Sign Up: Phone-Input Screen"
 # id: FC-AUTH-03
 # priority: P1
 # requires: PHONE_NUMBER,OTP_CODE
-# description: Verifies the sign-up entry point from the drawer: taps the drawer Sign Up entry, traverses the optional account-benefits intermediate screen, and confirms the phone-input screen appears.
+# description: Side menu Sign up opens the phone-number screen.
 tags:
   - navigation
   - auth

@@ -127,10 +127,8 @@ test is tagged with its batch name, its functional area, and `regression`.
   including the negative/error cases in `offline`.
 - **Regression**: all batches together, run before a release.
 
-`python3 scripts/generate_batch_report.py smoke` builds an HTML report for a batch (results, timings,
-failure reasons and click-to-play videos) as `reports/FarmerChat_<Batch>_v<version>_<device>_<date>.html`,
-plus a shareable `…_summary.html` without videos. See `docs/TEST_STRATEGY.md` for the suite charters
-and rules.
+Every run of `run_tests.sh` writes **one** report: `reports/FarmerChat_TestReport_<tester>_<date>.html`
+(plus the same data as JSON). See `docs/TEST_STRATEGY.md` for the suite charters and rules.
 
 | Batch | TC | Permanent ID | Test | Priority |
 |---|---|---|---|---|

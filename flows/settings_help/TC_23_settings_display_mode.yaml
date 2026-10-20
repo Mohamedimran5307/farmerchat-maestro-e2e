@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC23 - Settings: Toggle Display Mode (Day / Night / Auto)"
 # id: FC-SET-01
 # priority: P2
-# description: Verifies the appearance setting in the Settings screen: cycles through the three modes (Day / Night / Auto) and confirms each toggle updates the active-mode descriptor text correctly.
+# description: Display mode cycles through Day, Night and Auto.
 tags:
   - settings
   - regression
