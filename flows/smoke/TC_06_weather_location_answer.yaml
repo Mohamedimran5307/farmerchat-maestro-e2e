@@ -41,7 +41,6 @@ tags:
     timeout: 10000
     label: "System location prompt shown"
 - runFlow: ../../helpers/grant_runtime_permission.yaml
-- evalScript: ${output.tSend = Date.now()}
 # Google's location-accuracy pop-up (device-dependent).
 - runFlow:
     when:

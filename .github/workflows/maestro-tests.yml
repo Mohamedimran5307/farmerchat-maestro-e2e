@@ -192,8 +192,8 @@ jobs:
         with:
           name: FarmerChat-report-${{ github.run_number }}
           path: |
-            reports/FarmerChat_TestReport_*.json
-            reports/FarmerChat_TestReport_*.html
+            reports/FarmerChat_*_Test_Report_*.json
+            reports/FarmerChat_*_Test_Report_*.html
           retention-days: 30
           if-no-files-found: warn
 
@@ -219,7 +219,7 @@ jobs:
       - name: Post Summary
         if: always()
         run: |
-          REPORT_JSON=$(ls -t reports/FarmerChat_TestReport_*.json 2>/dev/null | head -1)
+          REPORT_JSON=$(ls -t reports/FarmerChat_*_Test_Report_*.json 2>/dev/null | head -1)
           if [ -n "$REPORT_JSON" ]; then
             TOTAL=$(grep -oE '"total"[: ]+[0-9]+' "$REPORT_JSON" | grep -oE '[0-9]+' | head -1)
             PASSED=$(grep -oE '"passed"[: ]+[0-9]+' "$REPORT_JSON" | grep -oE '[0-9]+' | head -1)
@@ -238,7 +238,7 @@ jobs:
             else
               echo "> $FAILED test(s) failed. Check the uploaded report for details." >> $GITHUB_STEP_SUMMARY
             fi
-            REPORT_HTML=$(ls -t reports/FarmerChat_TestReport_*.html 2>/dev/null | head -1)
+            REPORT_HTML=$(ls -t reports/FarmerChat_*_Test_Report_*.html 2>/dev/null | head -1)
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Reports** (download from the run's *Artifacts* section):" >> $GITHUB_STEP_SUMMARY
             echo "- JSON: \`$(basename "$REPORT_JSON")\`" >> $GITHUB_STEP_SUMMARY
@@ -271,7 +271,7 @@ jobs:
       - name: Prepare site (latest report as index.html)
         run: |
           mkdir -p site
-          latest=$(ls -t site/FarmerChat_TestReport_*.html 2>/dev/null | head -1)
+          latest=$(ls -t site/FarmerChat_*_Test_Report_*.html 2>/dev/null | head -1)
           if [ -n "$latest" ]; then
             cp "$latest" site/index.html
             echo "Published $(basename "$latest") as index.html"

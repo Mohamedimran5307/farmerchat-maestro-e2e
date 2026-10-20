@@ -69,7 +69,7 @@ tags:
 ## Configuration & secrets
 
 - **`config/env.yaml`** — committed non-secret defaults (`APP_ID`, `LANGUAGE`, `LANGUAGE_CODE`,
-  `USER_NAME`, `SHORT_NAME`, `WAIT_TIMEOUT`, `ANSWER_SLA_MS`, `AGENTIC`, and placeholder phone/OTP).
+  `USER_NAME`, `SHORT_NAME`, `WAIT_TIMEOUT`, `AGENTIC`, and placeholder phone/OTP).
 - **`config/env.local.yaml`** — gitignored; holds real secrets (`PHONE_NUMBER`, `OTP_CODE`).
   Keys here **override** `env.yaml`. Copy from `config/env.local.example.yaml`. Without it,
   sign-up tests are skipped via their `# requires:` guards.
@@ -129,7 +129,7 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
 - CI: `.github/workflows/maestro-tests.yml` runs on a **self-hosted macOS ARM64** runner (push/PR to
   `main`, daily cron, manual dispatch). It boots an emulator, grants permissions, disables animations,
   `adb forward tcp:7001`, then runs `./run_tests.sh "CI"`. The Post Summary step parses the
-  `reports/FarmerChat_TestReport_*.json` summary block for the pass/fail counts.
+  `reports/FarmerChat_*_Test_Report_*.json` summary block for the pass/fail counts.
 
 ## When editing flows
 
@@ -142,9 +142,9 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   answer — lands in view top-first), taps chips where they land, and scrolls down only once a
   finished answer is there. It completes on the Share/Listen row or the suggestions, and fails on the
   inline error (`chat_retry_btn`), on the "Sorry, I had a problem just now" failure reply (it looks
-  like a normal answer), on an answer without real text, and if the answer took longer than
-  `ANSWER_SLA_MS` (`config/env.yaml`). It needs `output.tSend` (`composer_send.yaml` sets it); set
-  `output.answerLabel` to name the latency in the report.
+  like a normal answer), and on an answer without real text. There is **no answer-time limit**: a
+  single UI sample says nothing about performance (measure latency in the backend); a hang still
+  fails, because the waits time out.
 - After an answer, chat tests assert the **Share button** and the **follow-up questions**
   (`chat_suggested_questions`): a `scrollUntilVisible` to each, followed by an explicit
   `assertVisible` with a readable label. Only FC-CHAT-01 (TC03) taps a suggestion, via

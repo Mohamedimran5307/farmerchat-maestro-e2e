@@ -127,7 +127,7 @@ test is tagged with its batch name, its functional area, and `regression`.
   including the negative/error cases in `offline`.
 - **Regression**: all batches together, run before a release.
 
-Every run of `run_tests.sh` writes **one** report: `reports/FarmerChat_TestReport_<tester>_<date>.html`
+Every run of `run_tests.sh` writes **one** report: `reports/FarmerChat_<Suite>_Test_Report_<date>.html` (e.g. `FarmerChat_Smoke_Test_Report_20Oct2026.html`)
 (plus the same data as JSON). See `docs/TEST_STRATEGY.md` for the suite charters and rules.
 
 | Batch | TC | Permanent ID | Test | Priority |
@@ -175,7 +175,7 @@ Every run of `run_tests.sh` writes **one** report: `reports/FarmerChat_TestRepor
 
 ## Reports
 
-`run_tests.sh` writes `reports/FarmerChat_TestReport_<Tester>_<date>.html` and a matching `.json`
+`run_tests.sh` writes `reports/FarmerChat_<Suite>_Test_Report_<date>.html` and a matching `.json`
 summary, plus a `reports/logs_<date>_<time>/` directory with per-attempt logs, debug output, and
 (when capture succeeds) per-attempt video. `reports/` is gitignored.
 

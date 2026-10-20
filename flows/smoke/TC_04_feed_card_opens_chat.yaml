@@ -24,7 +24,6 @@ tags:
 - evalScript: ${output.firstQ = maestro.copiedText.replace(/\\/g, '\\\\').replace(/\?/g, '\\?').replace(/\./g, '\\.').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\*/g, '\\*').replace(/\+/g, '\\+')}
 
 # That card's own Ask Now (the CTA directly below its question).
-- evalScript: ${output.tSend = Date.now()}
 - evalScript: ${output.answerLabel = 'card_answer'}
 - tapOn:
     id: "content_card_start_chat_btn_[0-9]+"

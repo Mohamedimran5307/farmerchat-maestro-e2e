@@ -45,7 +45,6 @@ appId: ${APP_ID}
             - evalScript: ${output.sugText = maestro.copiedText || ''}
       - evalScript: ${output.sugRe = String(output.sugText).replace(/\\/g, '\\\\').replace(/\?/g, '\\?').replace(/\./g, '\\.').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\*/g, '\\*').replace(/\+/g, '\\+').replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\|/g, '\\|')}
       - evalScript: ${console.log('[AGENTIC] follow-up suggestion - ' + output.sugText)}
-      - evalScript: ${output.tSend = Date.now()}
       - evalScript: ${output.answerLabel = output.followupLabel || 'followup_answer'}
       - tapOn:
           id: "chat_suggested_question_0"
@@ -64,7 +63,6 @@ appId: ${APP_ID}
               id: "chat_suggested_question_0"
           commands:
             - evalScript: ${console.log('[NOTE] First tap on the suggestion was ignored - tapped again')}
-            - evalScript: ${output.tSend = Date.now()}
             - tapOn:
                 id: "chat_suggested_question_0"
                 waitToSettleTimeoutMs: 500

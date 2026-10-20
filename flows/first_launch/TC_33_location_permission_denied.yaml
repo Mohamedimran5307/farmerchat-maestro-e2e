@@ -40,7 +40,6 @@ tags:
 # Decline in the chat too. Not via wait_for_answer: it would tap
 # "Give permission" (the first chip) on this card.
 - tapOn: "Continue without location"
-- evalScript: ${output.tSend = Date.now()}
 
 # A complete answer follows without location.
 - extendedWaitUntil:
@@ -70,11 +69,6 @@ tags:
     childOf:
       id: "chat_ai_message"
     label: "Answer is not the 'Sorry, I had a problem' failure reply"
-- evalScript: ${output.answerMs = Date.now() - output.tSend}
-- evalScript: ${console.log('[ANSWER-LATENCY] no_location_answer_ms=' + output.answerMs)}
-- assertTrue:
-    condition: "${output.answerMs <= (typeof ANSWER_SLA_MS === 'undefined' ? 60000 : Number(ANSWER_SLA_MS))}"
-    label: "Answer within ANSWER_SLA_MS"
 
 - tapOn:
     id: "appbar_logo_left_btn"

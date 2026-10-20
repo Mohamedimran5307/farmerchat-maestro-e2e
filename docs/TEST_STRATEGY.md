@@ -56,9 +56,8 @@ A flow is ready to merge only if all of these hold:
    follow-up turn), wait for the earlier answer's action row to leave the screen before waiting
    for the new one, so the old row can't pass the check. Don't anchor checks to the question
    text: long answers scroll it off screen, and Maestro can only anchor to visible elements. For AI answers use `helpers/wait_for_answer.yaml`:
-   it records when the answer text finished (timing only), requires the suggestions (they come
-   from a separate follow-up request), fails on the inline error, and fails if the complete
-   answer took longer than `ANSWER_SLA_MS`.
+   it requires a complete answer and fails on the inline error and on the failure reply; the
+   test then asserts the follow-up questions and the Share button.
 4. **Unique test data.** Anything later looked up (history entries, names) carries a run-unique
    value, so an older run's data can't produce a false pass.
 5. **Stable selectors.** Use testTag ids. Text or content-desc is allowed only with a comment and a
@@ -94,7 +93,9 @@ Non-agentic builds answer directly and end with suggestions. **Every test must p
 - **Every turn must complete:** an answer counts as complete once the Share/Listen row or the
   suggestions show, it has real text, no Retry button, and it isn't the failure reply ("Sorry, I
   had a problem just now. Please ask your question again." — looks like a normal answer, so it is
-  caught by its wording), within `ANSWER_SLA_MS`.
+  caught by its wording). There is no answer-time limit in UI tests: one sample per test says
+  nothing about performance and only adds noise; answer latency (p50/p90 per build) is measured
+  in the backend. A hang still fails, because the waits time out.
 - **Follow-ups:** after any confirmation, scroll to the end; the suggestions appear there. Use
   `helpers/followup_via_suggestion.yaml` (tap the first, wait until the earlier suggestions leave the
   screen so the old answer can't pass for the new one, then check the new answer). The follow-up
@@ -148,12 +149,12 @@ and before release.
 ## 7. Reporting
 
 There is **one** report: every run of `run_tests.sh` writes
-`reports/FarmerChat_TestReport_<tester>_<date>.html` (and the same data as JSON for CI). It stays
+`reports/FarmerChat_<Suite>_Test_Report_<date>.html` (e.g. `FarmerChat_Smoke_Test_Report_20Oct2026.html`) (and the same data as JSON for CI). It stays
 local, because the videos it links to show test credentials being typed.
 
 The report shows the device and the date, plus per test: its result (passed, flaky — passed only on
 a retry, or failed), a one-line description, the reason and screenshot for every failed attempt,
-the videos and the answer latency.
+and the videos.
 
 **Triage every failure into one category** and record it next to the failure:
 

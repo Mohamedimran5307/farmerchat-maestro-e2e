@@ -11,7 +11,6 @@ appId: ${APP_ID}
 # grant_location.yaml directly.
 # ============================================================
 
-- evalScript: ${output.tSend = Date.now()}
 - evalScript: ${output.answerLabel = 'weather_answer'}
 - runFlow: grant_location.yaml
 # The weather/location card opens a chat: wait for its complete answer

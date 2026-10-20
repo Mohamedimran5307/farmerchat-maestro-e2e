@@ -571,6 +571,7 @@ setup_test() {
 # ─────────────────────────────────────────────────────────────────────────────
 BATCH_DIRS=(smoke core settings_help first_launch offline)
 declare -a TEST_CASES=()
+declare -a SKIP_CASES=() SKIP_TAGS=() SKIP_PIDS=()   # quarantined / requires-skipped, for the report
 declare -a TEST_TAGS=()   # parallel to TEST_CASES
 declare -a TEST_PIDS=()   # parallel to TEST_CASES — permanent ids
 for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0-9]*_*.yaml 2>/dev/null; done); do
@@ -637,6 +638,10 @@ for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0
   # reason, so they don't fail the run or train people to ignore failures.
   if [ -n "$tc_quarantine" ] && [ "${RUN_QUARANTINED:-0}" != "1" ]; then
     echo -e "${YELLOW}  ⟳ Skipping $tc_id${tc_pid:+ ($tc_pid)}: quarantined — $tc_quarantine${NC}"
+    # Still listed in the report, with its reason: a quarantined test is a
+    # known release risk and must stay visible.
+    SKIP_CASES+=("${tc_id}|${display_name}|${tc_desc}|${tc_priority}|QUARANTINED|${tc_quarantine}")
+    SKIP_TAGS+=("$tc_tags"); SKIP_PIDS+=("$tc_pid")
     continue
   fi
 
@@ -664,6 +669,7 @@ for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0
         actual="${!req_key:-}"
         if [ "$actual" != "$req_value" ]; then
           echo -e "${YELLOW}  ⟳ Skipping $tc_id: requires $req (current ${req_key}=${actual:-<unset>})${NC}"
+          SKIP_REASON="Needs $req (currently ${req_key}=${actual:-<unset>})"
           SKIP_TC=1
           break
         fi
@@ -673,12 +679,17 @@ for tc_path in $(for b in "${BATCH_DIRS[@]}"; do ls "$SCRIPT_DIR/flows/$b"/TC_[0
         # Treat empty AND unresolved "${VAR}" placeholders as missing.
         if [ -z "$actual" ] || [ "$actual" = "\${${req_key}}" ]; then
           echo -e "${YELLOW}  ⟳ Skipping $tc_id: requires env var $req_key to be set (currently ${actual:-<unset>}). Add it to config/env.local.yaml.${NC}"
+          SKIP_REASON="Needs $req_key in config/env.local.yaml"
           SKIP_TC=1
           break
         fi
       fi
     done
-    [ "$SKIP_TC" = "1" ] && continue
+    if [ "$SKIP_TC" = "1" ]; then
+      SKIP_CASES+=("${tc_id}|${display_name}|${tc_desc}|${tc_priority}|SKIPPED|${SKIP_REASON}")
+      SKIP_TAGS+=("$tc_tags"); SKIP_PIDS+=("$tc_pid")
+      continue
+    fi
   fi
 
   TEST_CASES+=("${tc_id}|${tc_file}|${display_name}|${tc_desc}|${tc_priority}")
@@ -723,6 +734,19 @@ if [ -n "$TC_FILTER" ]; then
     exit 1
   fi
   TEST_CASES=("${FILTERED[@]}")
+  declare -a SKIP_FILTERED=()
+  for i in "${!SKIP_CASES[@]}"; do
+    IFS='|' read -r S_ID _REST <<< "${SKIP_CASES[$i]}"
+    for req in "${REQUESTED_TCS[@]}"; do
+      req="${req#"${req%%[![:space:]]*}"}"
+      req="${req%"${req##*[![:space:]]}"}"
+      if [ "$S_ID" = "$req" ] || [ "${SKIP_PIDS[$i]}" = "$req" ] || \
+         { [[ "$req" == @* ]] && [[ "${SKIP_TAGS[$i]}" == *",${req#@},"* ]]; }; then
+        SKIP_FILTERED+=("${SKIP_CASES[$i]}"); break
+      fi
+    done
+  done
+  SKIP_CASES=("${SKIP_FILTERED[@]}")
 fi
 TOTAL_COUNT=${#TEST_CASES[@]}
 
@@ -1067,6 +1091,27 @@ for test_case in "${TEST_CASES[@]}"; do
     }"
 done
 
+# Quarantined / skipped tests: listed with their reason, not run.
+QUARANTINED_COUNT=0; SKIPPED_COUNT=0
+for sc in "${SKIP_CASES[@]}"; do
+  IFS='|' read -r S_ID S_NAME S_DESC S_PRI S_STATUS S_REASON <<< "$sc"
+  [ "$S_STATUS" = "QUARANTINED" ] && QUARANTINED_COUNT=$((QUARANTINED_COUNT + 1)) || SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+  esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+  TEST_RESULTS="${TEST_RESULTS:+$TEST_RESULTS,}
+    {
+      \"tc\": \"$S_ID\",
+      \"name\": \"$(esc "$S_NAME")\",
+      \"description\": \"$(esc "$S_DESC")\",
+      \"status\": \"$S_STATUS\",
+      \"priority\": \"$S_PRI\",
+      \"time_taken\": \"-\",
+      \"issue\": \"$(esc "$S_REASON")\",
+      \"attempts\": 0,
+      \"flaky\": false,
+      \"retry_issues\": \"\"
+    }"
+done
+
 END_TIME=$(date +%s)
 TOTAL_DURATION=$((END_TIME - START_TIME))
 MINS=$((TOTAL_DURATION / 60))
@@ -1075,7 +1120,25 @@ SECS=$((TOTAL_DURATION % 60))
 # ─────────────────────────────────────────────────────────────────────────────
 # GENERATE JSON REPORT (Stakeholder-friendly format)
 # ─────────────────────────────────────────────────────────────────────────────
-REPORT_FILE="$REPORTS_DIR/FarmerChat_TestReport_${TESTER_NAME// /_}_${DATE_STAMP}.json"
+# Name the report after the suite that ran: @smoke → "Smoke", no filter →
+# "Regression" (every batch), anything else → "Selected Tests".
+case "$TC_FILTER" in
+  "")              SUITE_TITLE="Regression";       SUITE_FILE="Regression" ;;
+  @smoke)          SUITE_TITLE="Smoke";            SUITE_FILE="Smoke" ;;
+  @core)           SUITE_TITLE="Core";             SUITE_FILE="Core" ;;
+  @settings_help)  SUITE_TITLE="Settings & Help";  SUITE_FILE="SettingsHelp" ;;
+  @first_launch)   SUITE_TITLE="First Launch";     SUITE_FILE="FirstLaunch" ;;
+  @offline)        SUITE_TITLE="Offline";          SUITE_FILE="Offline" ;;
+  *)               SUITE_TITLE="Selected Tests";   SUITE_FILE="Selected" ;;
+esac
+case "$SUITE_FILE" in
+  Smoke)      SUITE_SUBTITLE="Smoke suite · must-pass journeys for every build" ;;
+  Regression) SUITE_SUBTITLE="Regression · every batch" ;;
+  Selected)   SUITE_SUBTITLE="Selected tests: $TC_FILTER" ;;
+  *)          SUITE_SUBTITLE="$SUITE_TITLE batch" ;;
+esac
+APP_VERSION=$(adb -s $DEVICE_ID shell dumpsys package "${APP_ID:-org.digitalgreen.farmer.chat}" 2>/dev/null | awk -F= '/versionName=/{v=$2} /versionCode=/{split($2,a," "); c=a[1]} END{if(v!="") printf "%s (%s)", v, c}' | tr -d '\r')
+REPORT_FILE="$REPORTS_DIR/FarmerChat_${SUITE_FILE}_Test_Report_${DATE_STAMP}.json"
 RUN_DATE_FRIENDLY=$(date +"%d %B %Y")
 RUN_TIME_FRIENDLY=$(date +"%I:%M %p IST")
 TIMESTAMP_FRIENDLY="$RUN_DATE_FRIENDLY, $RUN_TIME_FRIENDLY"
@@ -1094,7 +1157,8 @@ fi
 
 cat > "$REPORT_FILE" << EOF
 {
-  "testSuite": "FarmerChat Core Scenarios",
+  "testSuite": "FarmerChat $SUITE_TITLE Suite",
+  "appVersion": "$APP_VERSION",
 
   "summary": {
     "total": $TOTAL,
@@ -1102,6 +1166,8 @@ cat > "$REPORT_FILE" << EOF
     "failed": $FAILED,
     "first_attempt_passed": $FIRST_ATTEMPT_PASSED,
     "flaked": $FLAKED,
+    "quarantined": $QUARANTINED_COUNT,
+    "skipped": $SKIPPED_COUNT,
     "pass_rate": "${PASS_RATE_INT}%",
     "flake_rate": "${FLAKE_RATE_INT}%"
   },
@@ -1123,7 +1189,7 @@ EOF
 # ─────────────────────────────────────────────────────────────────────────────
 # GENERATE HTML REPORT
 # ─────────────────────────────────────────────────────────────────────────────
-HTML_REPORT_FILE="$REPORTS_DIR/FarmerChat_TestReport_${TESTER_NAME// /_}_${DATE_STAMP}.html"
+HTML_REPORT_FILE="$REPORTS_DIR/FarmerChat_${SUITE_FILE}_Test_Report_${DATE_STAMP}.html"
 PASS_RATE=$(echo "scale=0; $PASSED * 100 / $TOTAL" | bc)
 
 # Determine overall status color
@@ -1177,43 +1243,6 @@ build_recording_links() {
   fi
 }
 
-# Render latency chips for any TC that emits lines like
-#   [ANSWER-LATENCY] first_answer_ms=18342   (helpers/wait_for_answer.yaml)
-# via `evalScript: ${console.log(...)}`. The Maestro CLI does NOT forward
-# JS `console.log` output to its own stdout (so it's NOT in the per-attempt
-# .log file we capture); it only appears in maestro.log inside the
-# --debug-output directory, prefixed with `JsConsole:`. So we read from
-# `<attempt>_debug/.maestro/tests/<ts>/maestro.log`.
-# We walk attempts from highest-numbered to lowest and use the first one
-# that has data — failed-fast retries don't emit latency lines, so the
-# successful (or further-reaching) attempt's numbers are what we want.
-build_latency_chips() {
-  local tc_file="$1"
-  local chips=""
-  local dir m_log line pair name value pretty
-  # Walk attempt-debug dirs newest-first. Iterating `ls ... | sort -r`
-  # directly via `$()` ensures word-splitting on newlines regardless of
-  # whatever IFS the caller left set.
-  for dir in $(ls -d "$RUN_LOGS_DIR/${tc_file}_attempt"*_debug 2>/dev/null | sort -r); do
-    m_log=$(find "$dir/.maestro/tests" -name maestro.log -type f 2>/dev/null | sort | tail -n1)
-    [ -z "$m_log" ] && continue
-    [ ! -f "$m_log" ] && continue
-    while IFS= read -r line; do
-      # Strip up through "JsConsole: [<prefix>-LATENCY] " leaving "<name>=<value>".
-      pair=$(echo "$line" | sed -E 's/.*JsConsole:[[:space:]]+\[[A-Z0-9]+-LATENCY\][[:space:]]+//')
-      name="${pair%%=*}"
-      value="${pair#*=}"
-      pretty="${name%_ms}"
-      pretty="${pretty//_/ }"
-      chips="${chips}<span style=\"background:#e3f2fd; color:#1565c0; padding:3px 9px; border-radius:10px; font-size:11px; margin:2px 4px 2px 0; display:inline-block;\">⏱ ${pretty}: ${value} ms</span>"
-    done < <(grep -E 'JsConsole:.*\[[A-Z0-9]+-LATENCY\]' "$m_log" 2>/dev/null)
-    # First attempt with data wins — earlier attempts are stale.
-    [ -n "$chips" ] && break
-  done
-  if [ -n "$chips" ]; then
-    echo "<div style='margin-top:8px; padding-top:8px; border-top:1px dashed #eee;'>${chips}</div>"
-  fi
-}
 
 # Failure screenshot of a test's newest failed attempt, embedded as base64
 # so the HTML stays self-contained when shared via email / Drive / etc.
@@ -1261,7 +1290,6 @@ for test_case in "${TEST_CASES[@]}"; do
     RETRY_CELL="<div style='margin-top:8px; font-size:11px; color:#8d6e63;'><b>Failed attempts:</b> $(echo "$TC_RETRY_ISSUES" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/ | /<br>/g')</div>"
   fi
   RECORDINGS_CELL=$(build_recording_links "$TC_FILE")
-  LATENCY_CELL=$(build_latency_chips "$TC_FILE")
   TC_INDEX=$((TC_INDEX + 1))
 
   TEST_CASES_HTML="$TEST_CASES_HTML
@@ -1269,8 +1297,21 @@ for test_case in "${TEST_CASES[@]}"; do
       <td style='font-weight: 600; color: #2e7d32;'>$TC_ID</td>
       <td>$TC_NAME</td>
       <td style='color: #666; font-size: 13px;'>$TC_DESC</td>
-      <td><span style='background: ${TC_STATUS_BG}; color: ${TC_STATUS_COLOR}; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;'>$TC_ICON $TC_STATUS</span>${RETRY_CELL}${SCREENSHOT_CELL}${RECORDINGS_CELL}${LATENCY_CELL}</td>
+      <td><span style='background: ${TC_STATUS_BG}; color: ${TC_STATUS_COLOR}; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;'>$TC_ICON $TC_STATUS</span>${RETRY_CELL}${SCREENSHOT_CELL}${RECORDINGS_CELL}</td>
       <td><span style='background: #fff3e0; color: #e65100; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;'>$TC_PRIORITY</span></td>
+    </tr>"
+done
+
+for sc in "${SKIP_CASES[@]}"; do
+  IFS='|' read -r S_ID S_NAME S_DESC S_PRI S_STATUS S_REASON <<< "$sc"
+  S_REASON_HTML=$(printf '%s' "$S_REASON" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+  TEST_CASES_HTML="$TEST_CASES_HTML
+    <tr>
+      <td style='font-weight: 600; color: #2e7d32;'>$S_ID</td>
+      <td>$S_NAME</td>
+      <td style='color: #666; font-size: 13px;'>$S_DESC</td>
+      <td><span style='background: #eceff1; color: #546e7a; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;'>⏸ $S_STATUS</span><div style='margin-top:8px; font-size:11px; color:#78909c;'>Not run: $S_REASON_HTML</div></td>
+      <td><span style='background: #fff3e0; color: #e65100; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;'>$S_PRI</span></td>
     </tr>"
 done
 
@@ -1280,7 +1321,7 @@ cat > "$HTML_REPORT_FILE" << HTMLEOF
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FarmerChat Test Report - $TESTER_NAME - $RUN_DATE_FRIENDLY</title>
+    <title>FarmerChat $SUITE_TITLE Test Report – $RUN_DATE_FRIENDLY</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: #f5f5f5; line-height: 1.6; }
@@ -1343,8 +1384,8 @@ cat > "$HTML_REPORT_FILE" << HTMLEOF
 <body>
     <div class="container">
         <div class="header">
-            <h1>🌾 FarmerChat Test Report</h1>
-            <p class="subtitle">Automated UI Test Results - Core Scenarios</p>
+            <h1>🌾 FarmerChat $SUITE_TITLE Test Report</h1>
+            <p class="subtitle">$SUITE_SUBTITLE · FarmerChat ${APP_VERSION:-version unknown}</p>
             <p class="timestamp">$TIMESTAMP_FRIENDLY</p>
         </div>
         
@@ -1372,7 +1413,7 @@ cat > "$HTML_REPORT_FILE" << HTMLEOF
                     <h3>📦 App Under Test</h3>
                     <div class="item"><span class="label">App</span><span class="value">FarmerChat</span></div>
                     <div class="item"><span class="label">Package</span><span class="value" style="font-size: 11px;">$APP_ID</span></div>
-                    <div class="item"><span class="label">Build</span><span class="value">$BUILD_ID</span></div>
+                    <div class="item"><span class="label">Version</span><span class="value">${APP_VERSION:-unknown}</span></div>
                 </div>
             </div>
             

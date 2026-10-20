@@ -42,5 +42,3 @@ appId: ${APP_ID}
           text: "Send"
           waitToSettleTimeoutMs: 500
 - assertTrue: ${output.composerSent}
-# Send time for wait_for_answer.yaml's latency check.
-- evalScript: ${output.tSend = Date.now()}
