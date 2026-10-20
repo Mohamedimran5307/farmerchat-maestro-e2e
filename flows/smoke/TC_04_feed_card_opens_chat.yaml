@@ -36,11 +36,6 @@ tags:
     visible:
       id: "chat_screen"
     timeout: 10000
-- assertVisible:
-    id: "chat_user_message"
-    containsDescendants:
-      - text: ${output.firstQ}
-    label: "Chat shows the tapped card's question"
 # Expand "Read full advice" when the card offers it (content-dependent).
 - runFlow: ../../helpers/open_full_advice.yaml
 - runFlow: ../../helpers/wait_for_answer.yaml

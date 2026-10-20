@@ -62,7 +62,11 @@ tags:
     timeout: 15000
 - runFlow: ../../helpers/composer_send.yaml
 
-# The photo really went out in the user's message. Soft until the app
+- evalScript: ${output.answerLabel = 'photo_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+
+# Once the response is shown: the photo really went out in the user's
+# message. Soft until the app
 # tags the image (requested: chat_user_message_image) — then make this a
 # hard check by removing "optional".
 - extendedWaitUntil:
@@ -71,8 +75,6 @@ tags:
     timeout: 3000
     optional: true
     label: "Photo shown in the user's message (soft check until tagged)"
-- evalScript: ${output.answerLabel = 'photo_answer'}
-- runFlow: ../../helpers/wait_for_answer.yaml
 
 # The answer ends with its action row and the follow-up questions
 # ("You can also ask"; on agentic builds they come after any confirmation

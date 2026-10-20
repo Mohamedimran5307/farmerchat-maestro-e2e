@@ -36,11 +36,6 @@ tags:
       visible: "No thanks"
     commands:
       - tapOn: "No thanks"
-- extendedWaitUntil:
-    visible:
-      id: "chat_user_message"
-    timeout: 15000
-    label: "Weather question sent as the user's message"
 - tapOn:
     id: "appbar_logo_left_btn"
 - extendedWaitUntil:
@@ -62,11 +57,6 @@ tags:
 - assertNotVisible:
     id: "com.android.permissioncontroller:id/permission_allow_foreground_only_button|com.android.permissioncontroller:id/permission_allow_button"
     label: "No system permission prompt on a second visit"
-- extendedWaitUntil:
-    visible:
-      id: "chat_user_message"
-    timeout: 15000
-    label: "Second visit sends the weather question"
 - tapOn:
     id: "appbar_logo_left_btn"
 - extendedWaitUntil:

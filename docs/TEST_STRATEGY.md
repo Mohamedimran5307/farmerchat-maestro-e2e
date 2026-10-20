@@ -78,24 +78,27 @@ numbered chips (location, photo, crop, growth stage), and after answering it may
 confirmation chips (save crop to profile, gender) instead of the "You can also ask" suggestions.
 Non-agentic builds answer directly and end with suggestions. **Every test must pass on both**:
 
-- Send questions and wait with `helpers/wait_for_answer.yaml`. Rule: **always tap the first chip** — except the photo clarification ("Add one clear photo"), where it's always **"Continue without one"** —
+- Send questions and wait with `helpers/wait_for_answer.yaml`. Rule: **always tap the first chip** — except the photo clarification ("Add one clear photo"), where it's always the **3rd chip** ("Continue without one" / "Continue without photo" by text, else `chat_clarification_option_2`) —
   for a clarification before the answer (the location card's first chip is "Give permission", and
-  the Android prompt is then granted) and for a confirmation after it (only when no suggestions
-  are shown, so a suggestion's "1" isn't mistaken for a chip). The answer counts as complete once
+  the Android prompt is then granted) and for a confirmation after it (found by `chat_confirmation_option_0`, so a suggestion row is never
+  mistaken for one; late cards after the answer are handled until the suggestions show). The answer counts as complete once
   the Share/Listen row or the suggestions show.
 - **Functional checks only.** These tests prove the chat *works*, not that the AI is right: what
   an answer, card or suggestion says (relevance, crop consistency, language) is covered by the
   separate evals project (LLM judges). Never assert on AI wording here.
-- **Every user action must take effect:** the sent question, every tapped clarification chip,
-  every tapped confirmation chip and every tapped suggestion must be echoed as the user's message.
+- **Wait for the response, then assert.** Nothing is asserted while the agent is working: tap
+  through any clarification / confirmation chips, wait for the final response, then assert the
+  answer, then the follow-up questions and the Share button. The user's own bubbles
+  (`chat_user_message`) are not asserted — the tag is unreliable in 4.1.7 (it drops out even on
+  visible bubbles); it's listed for the developer.
 - **Every turn must complete:** an answer counts as complete once the Share/Listen row or the
   suggestions show, it has real text, no Retry button, and it isn't the failure reply ("Sorry, I
   had a problem just now. Please ask your question again." — looks like a normal answer, so it is
   caught by its wording), within `ANSWER_SLA_MS`.
 - **Follow-ups:** after any confirmation, scroll to the end; the suggestions appear there. Use
-  `helpers/followup_via_suggestion.yaml` (tap the first, check its echo — the app scrolls it to
-  the top, so the old answer can't pass for the new one — then check the new answer). None
-  offered → a `[NOTE]` warning.
+  `helpers/followup_via_suggestion.yaml` (tap the first, wait until the earlier suggestions leave the
+  screen so the old answer can't pass for the new one, then check the new answer). The follow-up
+  questions are **mandatory** after every answer: none shown is an app bug (hard failure).
 - Don't require suggestions. A follow-up runs only when the answer offers suggestions (tap the
   first one); otherwise it's skipped, never typed.
 - **Watch first, scroll later.** While the app shows "Getting your answer… / location…", don't

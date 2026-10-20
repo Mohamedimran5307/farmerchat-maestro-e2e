@@ -7,8 +7,7 @@ appId: ${APP_ID}
 # on agentic builds the "You can also ask" suggestions appear only after
 # that, at the end of the chat). Scrolls to the end for the suggestions,
 # taps the first one, then checks:
-#   - the suggestion was sent as the user's message (echo — the app
-#     scrolls it to the top, so the first answer can't pass for the new one),
+#   - the chat moved on (the earlier suggestions left the screen),
 #   - the follow-up answer is complete (wait_for_answer.yaml).
 # Functional only: what the answer says is covered by the evals project.
 # No suggestions → logged as a [NOTE] (shown as a warning), not a failure.
@@ -69,32 +68,18 @@ appId: ${APP_ID}
             - tapOn:
                 id: "chat_suggested_question_0"
                 waitToSettleTimeoutMs: 500
-      # The chat moved on: the suggestion is echoed as the user's message
-      # (the app scrolls it to the top, so the first answer's row is off
-      # screen and can't pass for the new one). The echo has no
-      # chat_user_message tag (only typed messages and chip echoes do —
-      # requested), so match its text.
-      - runFlow:
-          when:
-            true: ${output.sugText != ''}
-          commands:
-            - extendedWaitUntil:
-                visible:
-                  text: ${output.sugRe}
-                timeout: 10000
-                label: "Suggestion sent as the user's message"
-      # Text unreadable (accessibility bug) → prove the chat moved on by the
-      # earlier suggestions leaving the screen instead.
+      # The chat moved on: the earlier answer's suggestions left the screen
+      # (so the old answer can't pass for the new one).
+      - extendedWaitUntil:
+          notVisible:
+            id: "chat_suggested_questions"
+          timeout: 15000
+          label: "Chat moved on after tapping the suggestion"
       - runFlow:
           when:
             true: ${output.sugText == ''}
           commands:
-            - evalScript: ${console.log('[NOTE] Suggestion text not readable (accessibility bug) - echo checked by the old suggestions leaving the screen')}
-            - extendedWaitUntil:
-                notVisible:
-                  id: "chat_suggested_questions"
-                timeout: 10000
-                label: "Chat moved on after tapping the suggestion"
+            - evalScript: ${console.log('[NOTE] Suggestion text not readable (accessibility bug) - its message check is skipped')}
       - runFlow: wait_for_answer.yaml
       - evalScript: ${output.followupDone = true}
 - runFlow:

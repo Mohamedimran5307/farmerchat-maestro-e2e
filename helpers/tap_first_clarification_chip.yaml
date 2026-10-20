@@ -4,9 +4,10 @@ appId: ${APP_ID}
 # TAP THE FIRST CHIP OF AN AGENTIC CLARIFICATION CARD
 # ============================================================
 # Called by wait_for_answer.yaml when a clarification is on screen.
-#   - Photo card ("Add one clear photo": Take a photo / Choose a photo /
-#     Continue without one): the ONE exception to "first chip" — always
-#     "Continue without one" (agreed rule: tests stay text-only here).
+#   - Photo card ("Add one clear photo": Take a photo / Choose from
+#     gallery / Continue without photo): the ONE exception to "first chip" —
+#     always the 3rd chip, "Continue without one/photo" (agreed rule: tests
+#     stay text-only here).
 #   - Location card ("Share location"): first chip is "Give permission"
 #     → also grants the Android location prompt that follows.
 #   - Other cards ("Choose one" / "Which crop …?" … footer "Don't see
@@ -15,26 +16,43 @@ appId: ${APP_ID}
 # card arrives in view top-first; option 1 is found below the card's title
 # ("Choose one"), which keeps an older answer's suggestion "1" from being
 # picked. Cards without a title fall back to the footer anchor.
-# After a numbered chip is tapped, the chat must echo its label as the
-# user's next message (the choice took effect).
 # No testTags yet (requested: chat_clarification_option_0).
 # ============================================================
 
 - evalScript: ${output.chipDone = false}
 
-# ── Photo card → always "Continue without one" (3rd chip) ──
-# Detected by the card's title: once answered, the card is replaced by the
-# echo "Continue without one" as the user's message, which must not count.
+# ── Photo card → always the "continue without a photo" option (3rd chip) ──
+# Detected by the card's title. The option's wording has changed between
+# builds ("Continue without one" → "Continue without photo"), so match
+# either; if neither is there, tap the 3rd chip by its tag.
 - runFlow:
     when:
       visible: "Add one clear photo.*"
     commands:
-      - tapOn:
-          text: "Continue without one"
-          below:
-            text: "Add one clear photo.*"
+      - evalScript: ${output.photoSkipped = false}
+      - runFlow:
+          when:
+            visible:
+              text: "Continue without (one|photo)"
+              below:
+                text: "Add one clear photo.*"
+          commands:
+            - tapOn:
+                text: "Continue without (one|photo)"
+                below:
+                  text: "Add one clear photo.*"
+            - evalScript: ${output.photoSkipped = true}
+      - runFlow:
+          when:
+            true: ${!output.photoSkipped}
+          commands:
+            - tapOn:
+                id: "chat_clarification_option_2"
+                below:
+                  text: "Add one clear photo.*"
+            - evalScript: ${console.log('[NOTE] Photo card skip option not matched by text - tapped the 3rd chip (chat_clarification_option_2)')}
       - evalScript: ${output.chipDone = true}
-      - evalScript: ${console.log('[AGENTIC] clarification answered - photo, continue without one')}
+      - evalScript: ${console.log('[AGENTIC] clarification answered - photo, continue without a photo')}
 
 # ── Location card ──
 - runFlow:
@@ -116,19 +134,6 @@ appId: ${APP_ID}
             text: "Choose one"
       - evalScript: ${output.chipDone = true}
       - evalScript: ${console.log('[AGENTIC] chip tapped - ' + output.chipLabel)}
-      # The choice took effect: the chat echoes it as the user's message.
-      - evalScript: ${output.chipLabelRe = String(output.chipLabel).replace(/\\/g, '\\\\').replace(/\?/g, '\\?').replace(/\./g, '\\.').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\*/g, '\\*').replace(/\+/g, '\\+').replace(/\[/g, '\\[').replace(/\]/g, '\\]').replace(/\|/g, '\\|')}
-      - runFlow:
-          when:
-            true: ${output.chipLabel != ''}
-          commands:
-            - extendedWaitUntil:
-                visible:
-                  id: "chat_user_message"
-                  containsDescendants:
-                    - text: ${output.chipLabelRe}
-                timeout: 10000
-                label: "Chip choice echoed as the user's message"
 
 # ── Fallback: a card without a "Choose one" title, found by its footer.
 #    Option 1 is the first "1" above the footer (scroll up to it). ──

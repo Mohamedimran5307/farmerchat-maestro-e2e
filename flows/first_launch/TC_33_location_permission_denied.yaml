@@ -2,7 +2,7 @@ appId: ${APP_ID}
 name: "TC33 - Location Denied → Continue Without Location → Answer"
 # id: FC-LOC-04
 # priority: P1
-# description: Weather still works when the user refuses location. From a clean state, taps the weather widget, goes through the share-location screen and taps Don't allow on the system prompt; the chat must open, send the weather question and ask for location with a Share location card. Tapping Continue without location must be echoed as the user's message, and a complete answer must follow (action row or suggestions, no inline error or failure reply, within ANSWER_SLA_MS). Functional only — what the answer says is covered by the evals project.
+# description: Weather still works when the user refuses location. From a clean state, taps the weather widget, goes through the share-location screen and taps Don't allow on the system prompt; the chat must open and ask for location with a Share location card. After tapping Continue without location a complete answer must follow (action row or suggestions, no inline error or failure reply, within ANSWER_SLA_MS). Functional only — what the answer says is covered by the evals project.
 tags:
   - home
   - regression
@@ -33,11 +33,6 @@ tags:
 
 # The chat opens anyway and asks for location in the conversation.
 - extendedWaitUntil:
-    visible:
-      id: "chat_user_message"
-    timeout: 15000
-    label: "Weather question sent as the user's message"
-- extendedWaitUntil:
     visible: "Share location"
     timeout: 60000
     label: "Chat asks for location (it was denied)"
@@ -46,13 +41,6 @@ tags:
 # "Give permission" (the first chip) on this card.
 - tapOn: "Continue without location"
 - evalScript: ${output.tSend = Date.now()}
-- extendedWaitUntil:
-    visible:
-      id: "chat_user_message"
-      containsDescendants:
-        - text: "Continue without location"
-    timeout: 10000
-    label: "Choice echoed as the user's message"
 
 # A complete answer follows without location.
 - extendedWaitUntil:

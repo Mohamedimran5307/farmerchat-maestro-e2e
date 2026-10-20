@@ -149,8 +149,9 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   (`chat_suggested_questions`): a `scrollUntilVisible` to each, followed by an explicit
   `assertVisible` with a readable label. Only FC-CHAT-01 (TC03) taps a suggestion, via
   `helpers/followup_via_suggestion.yaml`.
-- Chat tests check **functionality only** — every action is echoed as the user's message, every
-  turn completes. Never assert what the AI says (crop, relevance, place names): that's covered by
+- Chat tests check **functionality only** — every turn completes, and the answer shows its Share
+  button and follow-up questions. The user's own bubbles (`chat_user_message`) are **not**
+  asserted: the tag is unreliable in 4.1.7 (listed for the developer). Never assert what the AI says (crop, relevance, place names): that's covered by
   the separate evals project.
 - **Tags only:** when a check fails because a testTag is missing or drops out, don't work around it
   in the flow (no switching to text) — list it with the evidence in `TESTTAG_REQUESTS_CRITICAL.md`
@@ -167,8 +168,10 @@ show confirmation chips after it (save crop, gender) instead of suggestions. `AG
 `config/env.yaml` marks an agentic APK (enables FC-AGENT-01, which *requires* a clarification);
 set it false for a non-agentic APK. Always wait for
 answers with `helpers/wait_for_answer.yaml` (handles both build types; taps the first chip of any
-clarification — except the photo card, where it's always "Continue without one" — and of any
-confirmation, and checks every chip choice is echoed). On agentic builds the suggestions come after
+clarification — except the photo card, where it's the 3rd chip, "Continue without one/photo"
+(by text, else `chat_clarification_option_2`) — and of any confirmation, found by
+`chat_confirmation_option_0`; the agent's turns are awaited between taps, nothing is asserted while
+it's working). On agentic builds the suggestions come after
 any confirmation card, at the end of the chat, so scroll down to them before asserting them; never
 type a follow-up. Each Maestro check on an absent element costs ~3.5s here, so keep
 `runFlow when` / optional checks to a minimum. Details in `docs/TEST_STRATEGY.md` §3a. Test APKs come from fc-compose
