@@ -34,10 +34,21 @@ tags:
 - tapOn:
     id: "chat_share_btn"
 
-# Android share chooser opens.
+# The phone's share sheet opened, whatever the brand (Vivo, Samsung,
+# Xiaomi, stock Android …): an element of another app (pkg:id/…), not the
+# status bar. FarmerChat's own tags have no "pkg:id/" prefix.
 - extendedWaitUntil:
     visible:
-      id: "android:id/chooser_header"
-    timeout: 15000
-- assertVisible:
-    id: "android:id/chooser_header"
+      id: "(?!com\\.android\\.systemui:)[a-zA-Z][\\w.]*:id/.+"
+    timeout: 10000
+    label: "Phone's share sheet opened"
+
+# Soft: FarmerChat's share message in the sheet's preview (Vivo shows one;
+# other phones may not) — a warning if missing, not a failure.
+- extendedWaitUntil:
+    visible:
+      text: "Sharing what FarmerChat taught me—super useful. 👍🏾 https://farmerchat.go.link/clujT"
+    timeout: 3000
+    optional: true
+    label: "Share message shown in the sheet (soft check)"
+
