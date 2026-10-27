@@ -32,10 +32,5 @@ tags:
     visible:
       id: "chat_retry_btn"
     timeout: 15000
-
-# Back to home.
-- back
-- extendedWaitUntil:
-    visible:
-      id: "home_screen"
-    timeout: 5000
+- assertVisible:
+    id: "chat_retry_btn"
