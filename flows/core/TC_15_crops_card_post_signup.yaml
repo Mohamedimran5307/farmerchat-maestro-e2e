@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC16 - Crops Card Renders After Sign-Up + Location"
+name: "TC15 - Crops Card Renders After Sign-Up + Location"
 # id: FC-PROF-02
 # priority: P1
 # requires: PHONE_NUMBER,OTP_CODE

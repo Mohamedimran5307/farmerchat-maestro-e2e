@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC22 - Settings → Sign Up → Skip Returns to Settings"
+name: "TC21 - Settings → Sign Up → Skip Returns to Settings"
 # id: FC-AUTH-05
 # priority: P2
 # requires: PHONE_NUMBER,OTP_CODE

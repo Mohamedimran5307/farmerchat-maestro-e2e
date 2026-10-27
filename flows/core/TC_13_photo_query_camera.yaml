@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC14 - Photo Question from Camera → AI Response"
+name: "TC13 - Photo Question from Camera → AI Response"
 # id: FC-PHOTO-02
 # priority: P2
 # description: A camera photo sent as a question gets a complete answer.

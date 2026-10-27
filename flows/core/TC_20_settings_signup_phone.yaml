@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC21 - Settings → Sign Up: Phone-Input Screen"
+name: "TC20 - Settings → Sign Up: Phone-Input Screen"
 # id: FC-AUTH-04
 # priority: P1
 # requires: PHONE_NUMBER,OTP_CODE

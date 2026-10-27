@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC17 - Answer Gender Profile-Prompt Card"
+name: "TC16 - Answer Gender Profile-Prompt Card"
 # id: FC-PROF-03
 # priority: P2
 # description: Choosing a gender option dismisses the card.

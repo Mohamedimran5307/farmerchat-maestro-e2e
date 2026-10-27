@@ -119,10 +119,16 @@ echo -e "Tester: ${YELLOW}$TESTER_NAME${NC}"
 #           ./run_tests.sh "Imran" TC01,TC03
 #           ./run_tests.sh "Imran" @smoke
 #           ./run_tests.sh "Imran" @smoke,TC08
+#           ./run_tests.sh "Imran" @functional       (every batch except smoke)
 #           ./run_tests.sh "Imran" FC-CHAT-01        (permanent id)
 #   RUN_QUARANTINED=1 ./run_tests.sh "Imran" @smoke   (include quarantined)
 # ─────────────────────────────────────────────────────────────────────────────
 TC_FILTER="${2:-}"
+# @functional = every batch except smoke (the functional suites).
+SUITE_KEY="$TC_FILTER"
+if [ "$TC_FILTER" = "@functional" ]; then
+  TC_FILTER="@core,@settings_help,@first_launch,@offline"
+fi
 if [ -n "$TC_FILTER" ]; then
   echo -e "Filter:  ${YELLOW}$TC_FILTER${NC}"
 fi
@@ -1122,8 +1128,9 @@ SECS=$((TOTAL_DURATION % 60))
 # ─────────────────────────────────────────────────────────────────────────────
 # Name the report after the suite that ran: @smoke → "Smoke", no filter →
 # "Regression" (every batch), anything else → "Selected Tests".
-case "$TC_FILTER" in
+case "$SUITE_KEY" in
   "")              SUITE_TITLE="Regression";       SUITE_FILE="Regression" ;;
+  @functional)     SUITE_TITLE="Functional";       SUITE_FILE="Functional" ;;
   @smoke)          SUITE_TITLE="Smoke";            SUITE_FILE="Smoke" ;;
   @core)           SUITE_TITLE="Core";             SUITE_FILE="Core" ;;
   @settings_help)  SUITE_TITLE="Settings & Help";  SUITE_FILE="SettingsHelp" ;;
@@ -1134,6 +1141,7 @@ esac
 case "$SUITE_FILE" in
   Smoke)      SUITE_SUBTITLE="Smoke suite · must-pass journeys for every build" ;;
   Regression) SUITE_SUBTITLE="Regression · every batch" ;;
+  Functional) SUITE_SUBTITLE="Functional suites · Core, Settings & Help, First Launch, Offline" ;;
   Selected)   SUITE_SUBTITLE="Selected tests: $TC_FILTER" ;;
   *)          SUITE_SUBTITLE="$SUITE_TITLE batch" ;;
 esac

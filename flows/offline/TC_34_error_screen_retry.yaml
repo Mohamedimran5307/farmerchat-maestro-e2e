@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC35 - No-Internet Error: Retry Recovers to Language Screen"
+name: "TC34 - No-Internet Error: Retry Recovers to Language Screen"
 # id: FC-ERR-02
 # priority: P2
 # description: Try again after going back online recovers from the no-internet screen.

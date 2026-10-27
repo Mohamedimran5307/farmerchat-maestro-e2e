@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC30 - First-Launch: Verify Privacy Policy Link in Language-Screen Legal Text"
+name: "TC29 - First-Launch: Verify Privacy Policy Link in Language-Screen Legal Text"
 # id: FC-LEGAL-02
 # priority: P2
 # description: Language screen's legal text shows the Privacy Policy link.

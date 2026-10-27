@@ -16,10 +16,10 @@ YAML flows, reusable sub-flows, and bash runners that orchestrate Maestro + adb 
   | Batch folder | IDs | Scope |
   |---|---|---|
   | `flows/smoke/` | TC01–TC08 | **Smoke suite** — must-pass core journeys run first on every build: fresh install, agentic clarification, typed Q→A, feed card, gallery photo, weather/location, account lifecycle, listen (quarantined) |
-  | `flows/core/` | TC09–TC22 | Secondary positive flows: full feed scroll, voice, Settings sign-up, share, save, camera, profile cards, language, sign-up entry screens |
-  | `flows/settings_help/` | TC23–TC27 | Settings and Help screens |
-  | `flows/first_launch/` | TC28–TC33 | Location interstitial, location permission persists / denied, and first-launch legal links |
-  | `flows/offline/` | TC34–TC37 | No-internet / airplane-mode error + retry |
+  | `flows/core/` | TC09–TC21 | Secondary positive flows: full feed scroll, voice, Settings sign-up, share, camera, profile cards, language, sign-up entry screens |
+  | `flows/settings_help/` | TC22–TC26 | Settings and Help screens |
+  | `flows/first_launch/` | TC27–TC32 | Location interstitial, location permission persists / denied, and first-launch legal links |
+  | `flows/offline/` | TC33–TC36 | No-internet / airplane-mode error + retry |
 
   Suite terms: **Smoke** = the `smoke` batch (if it fails, reject the build); the other batches are
   functional suites; **Regression** = every batch together (all flows carry the `regression` tag).
@@ -87,7 +87,7 @@ upload). Run from repo root:
 ./run_tests.sh "Imran" TC01            # single test (id, not filename)
 ./run_tests.sh "Imran" TC01,TC03       # comma-separated subset
 ./run_tests.sh "Imran" @smoke          # every flow tagged `smoke` (any tag works)
-./run_tests.sh "Imran" @smoke,TC13     # tags and ids can be mixed
+./run_tests.sh "Imran" @smoke,TC12     # tags and ids can be mixed
 ./run_tests.sh "Imran" FC-CHAT-01      # permanent id
 RUN_QUARANTINED=1 ./run_tests.sh "Imran" @smoke   # include quarantined flows
 ```
@@ -111,8 +111,8 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
 ### Auxiliary scripts (`scripts/`)
 
 - `scripts/run_failed.sh` — re-run only the TCs that failed in the last run.
-- **Offline-network tests are self-contained.** TC_34/TC_35 (global no-internet error + retry),
-  TC_36 (chat send offline → inline error + retry), and TC_37 (chat history offline → error + retry)
+- **Offline-network tests are self-contained.** TC_33/TC_34 (global no-internet error + retry),
+  TC_35 (chat send offline → inline error + retry), and TC_36 (chat history offline → error + retry)
   each toggle the radio in-flow via `setAirplaneMode: enabled/disabled` and drive their own
   recovery — no manual network toggling and no required run order. (These were previously
   `_setup`/`_assert`/`_recovery` triplets; now consolidated into one flow apiece.)

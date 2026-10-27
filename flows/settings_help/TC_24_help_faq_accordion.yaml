@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC25 - Help: FAQ Accordion Expands With Answer"
+name: "TC24 - Help: FAQ Accordion Expands With Answer"
 # id: FC-HELP-01
 # priority: P2
 # description: Tapping an FAQ question in Help expands its answer.

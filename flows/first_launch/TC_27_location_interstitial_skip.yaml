@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC28 - Location Interstitial: Skip Returns to Home"
+name: "TC27 - Location Interstitial: Skip Returns to Home"
 # id: FC-LOC-02
 # priority: P2
 # description: Skipping the share-location screen returns to home.

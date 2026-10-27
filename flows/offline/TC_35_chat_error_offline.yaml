@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC36 - Chat Offline: Inline Error + Retry Recovers"
+name: "TC35 - Chat Offline: Inline Error + Retry Recovers"
 # id: FC-ERR-03
 # priority: P2
 # description: Sending offline shows the chat error; Retry online gets the answer.

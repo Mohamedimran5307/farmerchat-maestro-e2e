@@ -1,12 +1,11 @@
 appId: ${APP_ID}
-name: "TC27 - Help: Open Privacy Policy"
-# id: FC-HELP-03
+name: "TC25 - Help: Open Terms of Use"
+# id: FC-HELP-02
 # priority: P2
-# description: Help opens the Privacy Policy.
-# TODO: help_privacy_policy testTag and the "LAST UPDATED: DECEMBER 2025"
-# date string both carry over from the old APK. The date will need
-# bumping with each privacy-policy revision — consider replacing
-# with a stable "Privacy Policy" header assertion only.
+# description: Help opens the Terms of Use.
+# TODO: help_terms_of_use testTag carries over from the old APK and
+# needs a live-device confirmation on the new build. May now be
+# help_btn_terms or similar.
 tags:
   - help
   - regression
@@ -36,11 +35,11 @@ tags:
     timeout: 5000
 
 - tapOn:
-    id: "help_item_privacy"
+    id: "help_item_terms"
 
 - extendedWaitUntil:
     visible:
-      text: "Privacy Policy"
+      text: "Terms of Use"
     timeout: 15000
 - assertVisible:
-    text: "Privacy Policy"
+    text: "Terms of Use"
