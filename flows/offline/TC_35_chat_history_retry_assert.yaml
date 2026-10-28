@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC36 - Chat History Offline: Error + Retry Loads History"
+name: "TC35 - Chat History Offline: Error + Retry Loads History"
 # id: FC-ERR-04
 # priority: P2
 # requires: PHONE_NUMBER,OTP_CODE

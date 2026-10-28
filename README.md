@@ -13,10 +13,10 @@ Maestro_automation_FarmerChat_End_to_End_Flow/
 │   └── env.local.yaml            # Gitignored secrets (PHONE_NUMBER, OTP_CODE); overrides env.yaml
 ├── flows/
 │   ├── smoke/                    # Batch 1: TC01–TC08 — smoke suite (must-pass core journeys)
-│   ├── core/                     # Batch 2: TC09–TC21 — secondary positive flows
-│   ├── settings_help/            # Batch 3: TC22–TC26
-│   ├── first_launch/             # Batch 4: TC27–TC32
-│   ├── offline/                  # Batch 5: TC33–TC36 (airplane-mode error + retry)
+│   ├── core/                     # Batch 2: TC09–TC20 — secondary positive flows
+│   ├── settings_help/            # Batch 3: TC21–TC25
+│   ├── first_launch/             # Batch 4: TC26–TC31
+│   ├── offline/                  # Batch 5: TC32–TC35 (airplane-mode error + retry)
 │   └── onboarding/               # Legacy flows — NOT run by the runners
 ├── helpers/                      # Reusable sub-flows invoked via runFlow:
 │   ├── launch_app.yaml
@@ -117,7 +117,7 @@ tags:
 
 ## Test coverage
 
-Tests are grouped into batches (one folder each) and numbered **TC01–TC36** in batch order (display order only — the permanent `FC-…` id is what
+Tests are grouped into batches (one folder each) and numbered **TC01–TC35** in batch order (display order only — the permanent `FC-…` id is what
 identifies a test across builds). Every
 test is tagged with its batch name, its functional area, and `regression`.
 
@@ -145,31 +145,30 @@ Every run of `run_tests.sh` writes **one** report: `reports/FarmerChat_<Suite>_T
 | `core` | TC11 | FC-AUTH-02 | Full Sign Up via Settings (Phone + OTP → Signed In) | P0 |
 | `core` | TC12 | FC-CHAT-02 | Share AI Response via System Chooser | P1 |
 | `core` | TC13 | FC-PHOTO-02 | Photo Question from Camera → AI Response | P2 |
-| `core` | TC14 | FC-PROF-01 | Gender Card Renders After Sign-Up + Location | P1 |
-| `core` | TC15 | FC-PROF-02 | Crops Card Renders After Sign-Up + Location | P1 |
-| `core` | TC16 | FC-PROF-03 | Answer Gender Profile-Prompt Card | P2 |
-| `core` | TC17 | FC-NAV-01 | Drawer: Change Language | P2 |
-| `core` | TC18 | FC-NAV-02 | Side Menu Home Returns From Help Screen | P2 |
-| `core` | TC19 | FC-AUTH-03 | Drawer → Sign Up: Phone-Input Screen | P1 |
-| `core` | TC20 | FC-AUTH-04 | Settings → Sign Up: Phone-Input Screen | P1 |
-| `core` | TC21 | FC-AUTH-05 | Settings → Sign Up → Skip Returns to Settings | P2 |
-| `settings_help` | TC22 | FC-SET-01 | Settings: Toggle Display Mode (Day / Night / Auto) | P2 |
-| `settings_help` | TC23 | FC-SET-02 | Settings: Update Display Name | P2 |
-| `settings_help` | TC24 | FC-HELP-01 | Help: FAQ Accordion Expands With Answer | P2 |
-| `settings_help` | TC25 | FC-HELP-02 | Help: Open Terms of Use | P2 |
-| `settings_help` | TC26 | FC-HELP-03 | Help: Open Privacy Policy | P2 |
-| `first_launch` | TC27 | FC-LOC-02 | Location Interstitial: Skip Returns to Home | P2 |
-| `first_launch` | TC28 | FC-LEGAL-01 | First-Launch: Open Terms of Use from Language Screen | P2 |
-| `first_launch` | TC29 | FC-LEGAL-02 | First-Launch: Verify Privacy Policy Link in Language-Screen Legal Text | P2 |
-| `first_launch` | TC30 | FC-LEGAL-03 | First-Launch: Verify Both Legal Links in Language-Screen Legal Text | P2 |
-| `first_launch` | TC31 | FC-LOC-03 | Location Permission Persists After Grant | P1 |
-| `first_launch` | TC32 | FC-LOC-04 | Location Denied → Continue Without Location → Answer | P1 |
-| `offline` | TC33 | FC-ERR-01 | No-Internet Error Screen Asserts on Cold Start | P2 |
-| `offline` | TC34 | FC-ERR-02 | No-Internet Error: Retry Recovers to Language Screen | P2 |
-| `offline` | TC35 | FC-ERR-03 | Chat Offline: Inline Error + Retry Recovers | P2 |
-| `offline` | TC36 | FC-ERR-04 | Chat History Offline: Error + Retry Loads History | P2 |
+| `core` | TC14 | FC-PROF-01 | Gender Card Shows for a New Account | P1 |
+| `core` | TC15 | FC-PROF-02 | Crops Card Shows for a New Account | P1 |
+| `core` | TC16 | FC-NAV-01 | Drawer: Change Language | P2 |
+| `core` | TC17 | FC-NAV-02 | Side Menu Home Returns From Help Screen | P2 |
+| `core` | TC18 | FC-AUTH-03 | Drawer → Sign Up: Phone-Input Screen | P1 |
+| `core` | TC19 | FC-AUTH-04 | Settings → Sign Up: Phone-Input Screen | P1 |
+| `core` | TC20 | FC-AUTH-05 | Settings → Sign Up → Skip Returns to Settings | P2 |
+| `settings_help` | TC21 | FC-SET-01 | Settings: Toggle Display Mode (Day / Night / Auto) | P2 |
+| `settings_help` | TC22 | FC-SET-02 | Settings: Update Display Name | P2 |
+| `settings_help` | TC23 | FC-HELP-01 | Help: FAQ Accordion Expands With Answer | P2 |
+| `settings_help` | TC24 | FC-HELP-02 | Help: Open Terms of Use | P2 |
+| `settings_help` | TC25 | FC-HELP-03 | Help: Open Privacy Policy | P2 |
+| `first_launch` | TC26 | FC-LOC-02 | Location Interstitial: Skip Returns to Home | P2 |
+| `first_launch` | TC27 | FC-LEGAL-01 | First-Launch: Open Terms of Use from Language Screen | P2 |
+| `first_launch` | TC28 | FC-LEGAL-02 | First-Launch: Verify Privacy Policy Link in Language-Screen Legal Text | P2 |
+| `first_launch` | TC29 | FC-LEGAL-03 | First-Launch: Verify Both Legal Links in Language-Screen Legal Text | P2 |
+| `first_launch` | TC30 | FC-LOC-03 | Location Permission Persists After Grant | P1 |
+| `first_launch` | TC31 | FC-LOC-04 | Location Denied → Continue Without Location → Answer | P1 |
+| `offline` | TC32 | FC-ERR-01 | No-Internet Error Screen Asserts on Cold Start | P2 |
+| `offline` | TC33 | FC-ERR-02 | No-Internet Error: Retry Recovers to Language Screen | P2 |
+| `offline` | TC34 | FC-ERR-03 | Chat Offline: Inline Error + Retry Recovers | P2 |
+| `offline` | TC35 | FC-ERR-04 | Chat History Offline: Error + Retry Loads History | P2 |
 
-> The offline-network tests (TC33–TC36) are self-contained: each toggles the radio in-flow via
+> The offline-network tests (TC32–TC35) are self-contained: each toggles the radio in-flow via
 > `setAirplaneMode` and drives its own retry/recovery — no manual network toggling, no required order.
 
 ## Reports

@@ -1,9 +1,13 @@
 appId: ${APP_ID}
-name: "TC20 - Settings → Sign Up: Phone-Input Screen"
-# id: FC-AUTH-04
-# priority: P1
+name: "TC20 - Settings → Sign Up → Skip Returns to Settings"
+# id: FC-AUTH-05
+# priority: P2
 # requires: PHONE_NUMBER,OTP_CODE
-# description: Settings Sign up opens the phone-number screen.
+# description: Skipping sign-up from Settings returns to Settings.
+# TODO: The "Skip" CTA on the account-benefits screen doesn't have a
+# confirmed testTag yet. Currently using a text:"Skip" matcher; once
+# the new APK is inspected, replace with an id like
+# account_benefits_btn_skip if available.
 tags:
   - settings
   - auth
@@ -35,26 +39,19 @@ tags:
       id: "settings_screen"
     timeout: 5000
 
-# In the new APK both "Sign up" and "Logout" share the testTag
-# settings_btn_signup / settings_btn_logout — one tag per auth state (4.1.7+).
-# When signed out (this TC starts there), tapping it leads to the
-# signup flow.
 - tapOn:
     id: "settings_btn_signup"
 
-# Some builds insert an intermediate "account benefits" screen before
-# the phone-input page.
-- runFlow:
-    when:
-      visible:
-        id: "account_benefits_btn_signup"
-    commands:
-      - tapOn:
-          id: "account_benefits_btn_signup"
+# Wait for the account-benefits screen, then tap Skip.
+- extendedWaitUntil:
+    visible:
+      id: "account_benefits_btn_signup"
+    timeout: 10000
+- tapOn: "Skip"
 
 - extendedWaitUntil:
     visible:
-      id: "auth_screen"
-    timeout: 10000
+      id: "settings_screen"
+    timeout: 5000
 - assertVisible:
-    id: "auth_phone_input"
+    id: "settings_screen"

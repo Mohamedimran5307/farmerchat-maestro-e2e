@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC22 - Settings: Toggle Display Mode (Day / Night / Auto)"
+name: "TC21 - Settings: Toggle Display Mode (Day / Night / Auto)"
 # id: FC-SET-01
 # priority: P2
 # description: Display mode cycles through Day, Night and Auto.

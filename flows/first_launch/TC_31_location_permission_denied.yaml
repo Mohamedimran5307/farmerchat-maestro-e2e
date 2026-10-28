@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC32 - Location Denied → Continue Without Location → Answer"
+name: "TC31 - Location Denied → Continue Without Location → Answer"
 # id: FC-LOC-04
 # priority: P1
 # description: With location denied, weather still answers after Continue without location.

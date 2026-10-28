@@ -42,7 +42,7 @@ exhaustive UI checks (such as scrolling the whole feed), and anything flaky.
   conversations. Areas: ONB, CHAT, FEED, PHOTO, LOC, AUTH, TTS, VOICE, PROF, NAV, SET, HELP, LEGAL, ERR.
 - **TC number** (`TC_NN_` in the filename) is only the run and display order: gapless across batches
   in batch order. Renumber freely; never reuse a permanent ID.
-- **Retired permanent IDs** (never reuse): FC-CHAT-03 (Save on an answer: the Save feature was removed from the app in 4.1.7).
+- **Retired permanent IDs** (never reuse): FC-CHAT-03 (Save on an answer: the Save feature was removed from the app in 4.1.7); FC-PROF-03 (answering the gender card: answering removes the card from the account for good, and only 2 accounts can log in per device, so it can't run repeatedly — answering is covered manually / at the API level).
 - Both work as runner filters: `./run_tests.sh "Imran" FC-CHAT-01` or `TC02`.
 
 ## 3. Checklist for every test

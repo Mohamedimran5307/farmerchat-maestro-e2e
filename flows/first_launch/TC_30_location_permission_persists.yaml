@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC31 - Location Permission Persists After Grant"
+name: "TC30 - Location Permission Persists After Grant"
 # id: FC-LOC-03
 # priority: P1
 # description: Location granted once isn't asked for again on the next weather tap.

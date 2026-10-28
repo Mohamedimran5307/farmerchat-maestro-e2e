@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC23 - Settings: Update Display Name"
+name: "TC22 - Settings: Update Display Name"
 # id: FC-SET-02
 # priority: P2
 # description: Editing the display name in Settings saves the new name.

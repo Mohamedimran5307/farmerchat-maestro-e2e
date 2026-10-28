@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC33 - No-Internet Error Screen Asserts on Cold Start"
+name: "TC32 - No-Internet Error Screen Asserts on Cold Start"
 # id: FC-ERR-01
 # priority: P2
 # description: Offline cold start shows the no-internet screen with Try again.

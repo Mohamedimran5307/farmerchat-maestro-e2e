@@ -1,5 +1,5 @@
 appId: ${APP_ID}
-name: "TC18 - Side Menu Home Returns From Help Screen"
+name: "TC17 - Side Menu Home Returns From Help Screen"
 # id: FC-NAV-02
 # priority: P2
 # description: Side menu Home returns from the Help screen to home.
