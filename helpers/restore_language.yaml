@@ -1,0 +1,22 @@
+appId: ${APP_ID}
+---
+# Puts the app back in ${LANGUAGE_CODE} after a language test stopped
+# half-way, so later tests (some helpers match English labels) start clean.
+- stopApp
+- launchApp
+- runFlow: complete_onboarding.yaml
+- runFlow: open_drawer.yaml
+- tapOn:
+    id: "drawer_language_btn"
+- extendedWaitUntil:
+    visible:
+      id: "language_chooser_screen"
+    timeout: 5000
+- tapOn:
+    id: "language_chooser_item_${LANGUAGE_CODE}"
+- tapOn:
+    id: "language_chooser_save_button"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 10000

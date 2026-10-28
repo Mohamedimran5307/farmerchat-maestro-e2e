@@ -3,10 +3,6 @@ name: "TC17 - Side Menu Home Returns From Help Screen"
 # id: FC-NAV-02
 # priority: P2
 # description: Side menu Home returns from the Help screen to home.
-# TODO: help_hamburger_button is the old APK's id for the hamburger
-# inside Help. The new APK likely reuses appbar_default_left_btn
-# (the generic appbar back/menu icon) or a dedicated help_appbar id.
-# Live-inspect Help and replace this id if needed.
 tags:
   - navigation
   - regression
@@ -15,40 +11,52 @@ tags:
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml
 
-# Navigate from Home → Help via the drawer.
-- scrollUntilVisible:
-    centerElement: false
-    element:
-      id: "home_hamburger_button"
-    direction: UP
-    timeout: 15000
-- tapOn:
-    id: "home_hamburger_button"
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: "drawer_help_btn"
-    timeout: 5000
+# ── Home → Help through the side menu ──
+- runFlow: ../../helpers/open_drawer.yaml
 - tapOn:
     id: "drawer_help_btn"
 - extendedWaitUntil:
     visible:
       id: "help_screen"
     timeout: 5000
+    label: "Help screen opens"
+- assertNotVisible:
+    id: "home_screen"
+    label: "Help replaced home (home not showing)"
+- assertVisible:
+    id: "help_list_faqs"
+    label: "Help shows its FAQ list"
+- assertVisible:
+    id: "help_item_terms"
+    label: "Help shows Terms of Use"
+- assertVisible:
+    id: "help_item_privacy"
+    label: "Help shows Privacy Policy"
 
-# Open the drawer from Help and tap Home to navigate back.
+# ── Help → side menu → Home ──
 - tapOn:
     id: "appbar_default_left_btn"
 - extendedWaitUntil:
     visible:
       id: "drawer_home_btn"
     timeout: 5000
+    label: "Side menu opens from Help"
 - tapOn:
     id: "drawer_home_btn"
 
+# Home really took over: the side menu closed, Help is gone and the home
+# screen is usable (its own menu button is back).
 - extendedWaitUntil:
     visible:
       id: "home_screen"
     timeout: 10000
+    label: "Home screen shows after tapping Home"
+- assertNotVisible:
+    id: "drawer_container"
+    label: "Side menu closed"
+- assertNotVisible:
+    id: "help_screen"
+    label: "Help screen gone"
 - assertVisible:
-    id: "home_screen"
+    id: "home_hamburger_button"
+    label: "Home's menu button is back (home is usable)"

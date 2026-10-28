@@ -2,42 +2,118 @@ appId: ${APP_ID}
 name: "TC16 - Drawer: Change Language"
 # id: FC-NAV-01
 # priority: P2
-# description: Changing the language from the side menu shows a confirmation.
-# TODO: language_chooser_screen and language_chooser_save_button
-# testTags carry over from the old APK; the new APK may use the same
-# language_screen / language_start_button ids the first-launch flow
-# uses, or new ones. Inspect after first run.
+# description: Switching the language from the side menu really changes the app language (Hindi, then back to English).
+# requires: LANGUAGE_CODE=en
 tags:
   - navigation
   - regression
   - core
+# If the test stops half-way the app could stay in Hindi and break later
+# tests; put it back unless the flow already did.
+onFlowComplete:
+  - runFlow:
+      when:
+        true: ${output.languageRestored !== true}
+      file: ../../helpers/restore_language.yaml
 ---
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml
 
-- scrollUntilVisible:
-    centerElement: false
-    element:
-      id: "home_hamburger_button"
-    direction: UP
-    timeout: 15000
-- tapOn:
-    id: "home_hamburger_button"
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: "drawer_language_btn"
-    timeout: 5000
+# The chooser doesn't expose which language is selected, so the proof is
+# that the app's own text really changes: after each switch, check the
+# script of the side menu's Home item and of the chooser's Save button.
+# No wording is matched — only the alphabet.
+
+# ── Starting point: the app is not already in Hindi ──
+- runFlow: ../../helpers/open_drawer.yaml
+- assertNotVisible:
+    id: "drawer_home_btn"
+    containsDescendants:
+      - text: "(?s).*[\\u0900-\\u097F].*"
+    label: "App does not start in Hindi"
+
+# ── Switch to Hindi ──
 - tapOn:
     id: "drawer_language_btn"
-
 - extendedWaitUntil:
     visible:
       id: "language_chooser_screen"
     timeout: 5000
-
 - tapOn:
-    id: "language_chooser_item_en"
-
+    id: "language_chooser_item_hi"
 - tapOn:
     id: "language_chooser_save_button"
+- extendedWaitUntil:
+    notVisible:
+      id: "language_chooser_screen"
+    timeout: 10000
+    label: "Language screen closes after Save (Hindi)"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 10000
+    label: "Back on home after switching to Hindi"
+- runFlow: ../../helpers/open_drawer.yaml
+- assertVisible:
+    id: "drawer_home_btn"
+    containsDescendants:
+      - text: "(?s).*[\\u0900-\\u097F].*"
+    label: "Side menu is now in Hindi (Home in Devanagari)"
+- tapOn:
+    id: "drawer_language_btn"
+- extendedWaitUntil:
+    visible:
+      id: "language_chooser_screen"
+    timeout: 5000
+- assertVisible:
+    id: "language_chooser_save_button"
+    containsDescendants:
+      - text: "(?s).*[\\u0900-\\u097F].*"
+    label: "Language screen is now in Hindi (Save in Devanagari)"
+
+# ── Back to English (also leaves the app in English for other tests) ──
+- tapOn:
+    id: "language_chooser_item_en"
+- tapOn:
+    id: "language_chooser_save_button"
+- extendedWaitUntil:
+    notVisible:
+      id: "language_chooser_screen"
+    timeout: 10000
+    label: "Language screen closes after Save (English)"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 10000
+    label: "Back on home after switching to English"
+- runFlow: ../../helpers/open_drawer.yaml
+- assertVisible:
+    id: "drawer_home_btn"
+    containsDescendants:
+      - text: "[\\x20-\\x7E]+"
+    label: "Side menu is back in English (Home in Latin letters)"
+- evalScript: ${output.languageRestored = true}
+- tapOn:
+    id: "drawer_language_btn"
+- extendedWaitUntil:
+    visible:
+      id: "language_chooser_screen"
+    timeout: 5000
+- assertVisible:
+    id: "language_chooser_save_button"
+    containsDescendants:
+      - text: "[\\x20-\\x7E]+"
+    label: "Language screen is back in English (Save in Latin letters)"
+# Leave: Back returns to the side menu, whose Home goes back to home.
+- tapOn:
+    id: "appbar_default_left_btn"
+- extendedWaitUntil:
+    visible:
+      id: "drawer_home_btn"
+    timeout: 5000
+- tapOn:
+    id: "drawer_home_btn"
+- extendedWaitUntil:
+    visible:
+      id: "home_screen"
+    timeout: 10000

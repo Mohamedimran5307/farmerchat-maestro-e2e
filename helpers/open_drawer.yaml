@@ -1,9 +1,16 @@
 appId: ${APP_ID}
 ---
+# Opens the side menu from home. The hamburger floats over the feed, so
+# scroll back to the top first.
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "home_hamburger_button"
+    direction: UP
+    timeout: 15000
 - tapOn:
     id: "home_hamburger_button"
-- waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
-      id: "drawer_container"
+      id: "drawer_language_btn"
     timeout: 5000
