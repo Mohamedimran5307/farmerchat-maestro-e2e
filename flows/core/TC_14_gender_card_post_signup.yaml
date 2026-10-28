@@ -1,9 +1,9 @@
 appId: ${APP_ID}
-name: "TC14 - Gender Card Renders After Sign-Up + Location"
+name: "TC14 - Gender Card Shows for a New Account"
 # id: FC-PROF-01
 # priority: P1
-# requires: PHONE_NUMBER,OTP_CODE
-# description: After sign-up and location, the gender card shows all its options.
+# requires: NEW_PHONE_NUMBER,OTP_CODE
+# description: A new account (no profile yet) sees the gender card with all its options.
 tags:
   - home
   - regression
@@ -11,32 +11,65 @@ tags:
 ---
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml
-- runFlow: ../../helpers/full_signup.yaml
-- runFlow: ../../helpers/weather_share_location_and_back_home.yaml
+# The profile-card account (NEW_PHONE_NUMBER): ONE dedicated number whose
+# profile has no gender / crops — the chat tests save those to the main
+# account (PHONE_NUMBER), and then the feed stops asking. Only 2 accounts
+# can log in per device, so it's a fixed number, not a new one per run.
+# These tests only LOOK at the cards: answering one removes it from this
+# account for good, so never tap or submit a profile card here.
+- assertTrue:
+    condition: ${NEW_PHONE_NUMBER != PHONE_NUMBER}
+    label: "Profile-card account is not the main test account"
+- runFlow:
+    file: ../../helpers/full_signup.yaml
+    env:
+      PHONE_NUMBER: ${NEW_PHONE_NUMBER}
 
-# ── Assert the gender card and its four options are visible ──
-# The gender card is Firebase-flag gated — if the flag is off the card
-# never appears and this assertion fails. That's intentional, this TC's
-# entire purpose is to verify the gender card is rendered.
+# Scroll the feed along its left margin (2% x) until the card shows or the
+# feed ends: a centre swipe lands on the crops card's own sideways list.
 - extendedWaitUntil:
     visible:
       id: "home_feed_list"
     timeout: 15000
-- scrollUntilVisible:
-    centerElement: true
-    element:
-      id: "home_feed_card_gender"
-    direction: DOWN
-    timeout: 60000
-    speed: 40
+- evalScript: ${output.feedEnd = false}
+- repeat:
+    while:
+      notVisible:
+        id: "home_feed_card_gender"
+      true: ${!output.feedEnd}
+    times: 25
+    commands:
+      - swipe:
+          start: 2%, 75%
+          end: 2%, 35%
+          duration: 400
+      - runFlow:
+          when:
+            visible:
+              id: "home_feed_end"
+          commands:
+            - evalScript: ${output.feedEnd = true}
 - assertVisible:
     id: "home_feed_card_gender"
-# All four select-option rows must be present.
+    label: "Gender question card shown on the feed"
+# Its four options (Female / Male / Other / Prefer not to say).
 - assertVisible:
     id: "single_select_card_option_0"
+    childOf:
+      id: "home_feed_card_gender"
+    label: "Gender option 1 shown"
 - assertVisible:
     id: "single_select_card_option_1"
+    childOf:
+      id: "home_feed_card_gender"
+    label: "Gender option 2 shown"
 - assertVisible:
     id: "single_select_card_option_2"
+    childOf:
+      id: "home_feed_card_gender"
+    label: "Gender option 3 shown"
 - assertVisible:
     id: "single_select_card_option_3"
+    childOf:
+      id: "home_feed_card_gender"
+    label: "Gender option 4 shown"
