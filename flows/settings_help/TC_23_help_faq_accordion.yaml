@@ -1,12 +1,8 @@
 appId: ${APP_ID}
-name: "TC23 - Help: FAQ Accordion Expands With Answer"
+name: "TC23 - Help: FAQ Opens and Expands Answers"
 # id: FC-HELP-01
 # priority: P2
-# description: Tapping an FAQ question in Help expands its answer.
-# TODO: help_list_faqs / help_faq_item_0 (renamed from faqs-en / faq-01-en
-# in 4.1.x) need a live-device confirmation on the new build. The FAQ
-# question text ("What is FarmerChat...") and answer body may also
-# have been edited — refresh both after the first inspection.
+# description: A Help FAQ question opens the FAQ page at that question with its answer; other questions open and close on tap.
 tags:
   - help
   - regression
@@ -15,33 +11,87 @@ tags:
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml
 
-- scrollUntilVisible:
-    centerElement: false
-    element:
-      id: "home_hamburger_button"
-    direction: UP
-    timeout: 15000
-- tapOn:
-    id: "home_hamburger_button"
-- waitForAnimationToEnd
-- extendedWaitUntil:
-    visible:
-      id: "drawer_help_btn"
-    timeout: 5000
+# ── Home → Help ──
+- runFlow: ../../helpers/open_drawer.yaml
 - tapOn:
     id: "drawer_help_btn"
 - extendedWaitUntil:
     visible:
       id: "help_screen"
     timeout: 5000
+    label: "Help screen opens"
+- assertVisible:
+    id: "help_list_faqs"
+    label: "Help shows its FAQ list"
 
-# Verify the Help section heading rendered, then expand the first FAQ.
-- assertVisible: "How to use FarmerChat"
-- tapOn: "What is FarmerChat and how can it help me?"
-
+# ── Help question 2 → FAQ page, opened at question 2 ──
+# The FAQ page is a web page; its HTML ids (faqs-<lang>, faq-NN-<lang>)
+# are its tags. No wording is matched: an answer is any text in the item
+# that doesn't start with a digit (questions are numbered "1. …") and has
+# 20+ characters. Question 2 (not 1) is used so the check proves the page
+# opens the question that was tapped, not just its first one.
+- tapOn:
+    id: "help_faq_item_1"
 - extendedWaitUntil:
     visible:
-      id: "help_list_faqs"
+      id: "faqs-${LANGUAGE_CODE}"
     timeout: 10000
+    label: "FAQ page opens"
+- assertNotVisible:
+    id: "help_screen"
+    label: "FAQ page replaced Help"
 - assertVisible:
-    id: "help_faq_item_0"
+    id: "faq-02-${LANGUAGE_CODE}"
+    containsDescendants:
+      - text: "[^0-9](?s).{19,}"
+    label: "The tapped question (2) arrives open, with its answer"
+- assertNotVisible:
+    id: "faq-03-${LANGUAGE_CODE}"
+    containsDescendants:
+      - text: "[^0-9](?s).{19,}"
+    label: "Question 3 starts closed"
+
+# ── Question 3 opens, then closes ──
+# (The page scrolls question 2 to the top, so question 1 is off-screen;
+# question 3, right below, is the one fully in view.)
+- tapOn:
+    id: "faq-03-${LANGUAGE_CODE}"
+- extendedWaitUntil:
+    visible:
+      id: "faq-03-${LANGUAGE_CODE}"
+      containsDescendants:
+        - text: "[^0-9](?s).{19,}"
+    timeout: 5000
+    label: "Question 3 opens and shows its answer"
+# Tap its question row (top of the item): the item's centre is now the answer.
+- tapOn:
+    id: "faq-03-${LANGUAGE_CODE}"
+    point: "50%,10%"
+- extendedWaitUntil:
+    notVisible:
+      id: "faq-03-${LANGUAGE_CODE}"
+      containsDescendants:
+        - text: "[^0-9](?s).{19,}"
+    timeout: 5000
+    label: "Question 3 closes again"
+- assertVisible:
+    id: "faq-03-${LANGUAGE_CODE}"
+    label: "Still on the FAQ page (question 3 is there, closed)"
+- assertVisible:
+    id: "faq-02-${LANGUAGE_CODE}"
+    containsDescendants:
+      - text: "[^0-9](?s).{19,}"
+    label: "Question 2 stayed open"
+
+# ── Leave: back to Help ──
+# The FAQ page's close (X) button has no tag yet (requested); system Back
+# does the same.
+- back
+- extendedWaitUntil:
+    visible:
+      id: "help_screen"
+    timeout: 5000
+    label: "Back returns to Help"
+- assertNotVisible:
+    id: "faqs-${LANGUAGE_CODE}"
+    label: "FAQ page closed"
