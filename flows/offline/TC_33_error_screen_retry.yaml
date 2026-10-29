@@ -7,17 +7,23 @@ tags:
   - error
   - regression
   - offline
+# If any step fails while offline, turn airplane mode back off so the
+# rest of the run isn't offline too.
+onFlowComplete:
+  - setAirplaneMode: disabled
 ---
 # Go fully offline, then cold-start so the launch hits the global no-internet error.
 - setAirplaneMode: enabled
-# - clearState
-- launchApp
+- launchApp:
+    clearState: true
 - extendedWaitUntil:
     visible:
       id: "error_screen"
     timeout: 30000
+    label: "No-internet screen shown"
 - assertVisible:
     id: "error_btn_try_again"
+    label: "It offers Try again"
 
 # Restore connectivity. Wi-Fi/data take a few seconds to reassociate after
 # airplane mode is turned off, so the first "Try again" tap can fire before the
@@ -44,3 +50,7 @@ tags:
     visible:
       id: "language_screen"
     timeout: 20000
+    label: "Recovered to the language screen"
+- assertNotVisible:
+    id: "error_screen"
+    label: "No-internet screen gone"

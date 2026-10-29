@@ -8,16 +8,16 @@ tags:
   - error
   - regression
   - offline
+# If any step fails while offline, turn airplane mode back off so the
+# rest of the run isn't offline too.
+onFlowComplete:
+  - setAirplaneMode: disabled
 ---
-# Ensure online, then onboard so we reach home_screen with a working session.
 - setAirplaneMode: disabled
 - launchApp
 - runFlow: ../../helpers/complete_onboarding.yaml
-- assertVisible:
-    id: "home_screen"
 
-# Go offline, then send a question → inline chat error ("Something went wrong"
-# with a retry button) inside chat_screen, not the global error screen.
+# ── Offline: send a question → inline chat error (not the global one) ──
 - setAirplaneMode: enabled
 - runFlow:
     file: ../../helpers/compose_typed_question.yaml
@@ -26,12 +26,19 @@ tags:
 - extendedWaitUntil:
     visible:
       id: "chat_retry_btn"
-    timeout: 60000
+    timeout: 30000
+    label: "Inline 'No internet' error with Try again"
 - assertVisible:
     id: "chat_screen"
+    label: "Error shown inside the chat"
+- assertNotVisible:
+    id: "error_screen"
+    label: "Not the full-screen no-internet error"
 
-# Restore network and retry until the AI answer renders. Wi-Fi/data take a few
-# seconds to reassociate, so re-tap only while the retry button is still showing.
+# ── Back online: Try again until the request goes through ──
+# Wi-Fi takes a few seconds to reconnect, so the first tap can fail and
+# bring the card back. Nothing scrolls inside this loop: the card has to
+# stay in view to be tapped again.
 - setAirplaneMode: disabled
 - retry:
     maxRetries: 5
@@ -43,12 +50,39 @@ tags:
           commands:
             - tapOn:
                 id: "chat_retry_btn"
-      - scrollUntilVisible:
-          centerElement: false
-          element:
-            id: "chat_suggested_questions"
-          direction: DOWN
+      - extendedWaitUntil:
+          visible:
+            text: "Getting your .*"
+          timeout: 4000
+          optional: true
+      - extendedWaitUntil:
+          notVisible:
+            text: "Getting your .*"
           timeout: 90000
-          speed: 40
+      - assertNotVisible:
+          id: "chat_retry_btn"
+          label: "Try again went through (error card gone)"
+
+# ── Complete answer ──
+- evalScript: ${output.answerLabel = 'offline_retry_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 15000
+    label: "Scroll to the follow-up questions"
 - assertVisible:
     id: "chat_suggested_questions"
+    label: "Follow-up questions shown after the answer"
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_share_btn"
+    direction: UP
+    timeout: 10000
+    label: "Scroll to the Share button"
+- assertVisible:
+    id: "chat_share_btn"
+    label: "Share button shown on the answer"

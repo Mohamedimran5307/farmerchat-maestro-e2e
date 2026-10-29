@@ -7,16 +7,24 @@ tags:
   - error
   - regression
   - offline
+# If any step fails while offline, turn airplane mode back off so the
+# rest of the run isn't offline too.
+onFlowComplete:
+  - setAirplaneMode: disabled
 ---
-# Go fully offline, then cold-start so the launch hits the global no-internet error.
+# Go fully offline, then cold-start a fresh install so the launch has to
+# fetch from the network and hits the global no-internet error.
 - setAirplaneMode: enabled
-# - clearState
-- launchApp
+- launchApp:
+    clearState: true
 - extendedWaitUntil:
     visible:
       id: "error_screen"
     timeout: 30000
+    label: "No-internet screen shown"
 - assertVisible:
     id: "error_btn_try_again"
-# Restore connectivity so subsequent tests start online.
-- setAirplaneMode: disabled
+    label: "It offers Try again"
+- assertNotVisible:
+    id: "language_screen|home_screen"
+    label: "The app didn't get past it offline"
