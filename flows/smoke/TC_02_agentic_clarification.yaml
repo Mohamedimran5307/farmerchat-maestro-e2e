@@ -33,24 +33,13 @@ tags:
     condition: ${output.clarifications >= 1}
     label: "At least one clarification was answered before the answer"
 
-# The answer ends with its action row and the follow-up questions
-# ("You can also ask"; on agentic builds they come after any
-# confirmation card, at the end of the chat).
-- scrollUntilVisible:
-    centerElement: true
-    element:
-      id: "chat_suggested_questions"
-    direction: DOWN
-    timeout: 15000
-    label: "Scroll to the follow-up questions"
-- assertVisible:
-    id: "chat_suggested_questions"
-    label: "Follow-up questions shown after the answer"
+# The answer is complete and shows its Share button. Follow-up questions
+# and confirmation cards are FC-CHAT-01's (TC03) job.
 - scrollUntilVisible:
     centerElement: false
     element:
       id: "chat_share_btn"
-    direction: UP
+    direction: DOWN
     timeout: 10000
     label: "Scroll to the Share button"
 - assertVisible:

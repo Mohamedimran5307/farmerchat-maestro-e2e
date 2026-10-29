@@ -76,24 +76,14 @@ tags:
     optional: true
     label: "Photo shown in the user's message (soft check until tagged)"
 
-# The answer ends with its action row and the follow-up questions
-# ("You can also ask"; on agentic builds they come after any confirmation
-# card). What the answer says is covered by the evals project.
-- scrollUntilVisible:
-    centerElement: true
-    element:
-      id: "chat_suggested_questions"
-    direction: DOWN
-    timeout: 10000
-    label: "Scroll to the follow-up questions"
-- assertVisible:
-    id: "chat_suggested_questions"
-    label: "Follow-up questions shown after the answer"
+# The answer is complete and shows its Share button. Follow-up questions
+# and confirmation cards are FC-CHAT-01's (TC03) job; what the answer
+# says is covered by the evals project.
 - scrollUntilVisible:
     centerElement: false
     element:
       id: "chat_share_btn"
-    direction: UP
+    direction: DOWN
     timeout: 5000
     label: "Scroll to the Share button"
 - assertVisible:

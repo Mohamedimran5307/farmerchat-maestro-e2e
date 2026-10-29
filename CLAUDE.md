@@ -92,10 +92,12 @@ upload). Run from repo root:
 RUN_QUARANTINED=1 ./run_tests.sh "Imran" @smoke   # include quarantined flows
 ```
 
-- Each test gets **up to 3 attempts** (`MAX_RETRIES=2`). Between attempts it `am force-stop`s the
-  app but does **not** clear state — it relies on idempotent onboarding. Sign-up flows call
-  `helpers/ensure_signed_out.yaml` (directly or via `full_signup.yaml`) so a user left signed in by an
-  earlier test doesn't hide the Sign up entry.
+- Each test gets **up to 3 attempts** (`MAX_RETRIES=2`). Before every attempt it `am force-stop`s the
+  app and **wipes its data** (`run-as … rm -rf shared_prefs files cache databases`), so each test
+  starts signed out on the language screen. This is deliberate (clean state per test) and only works
+  on debuggable APKs — on a release build the wipe silently does nothing and state carries over, so
+  onboarding stays idempotent and sign-up flows still call `helpers/ensure_signed_out.yaml`
+  (directly or via `full_signup.yaml`). A language screen on every launch is this wipe, not an app bug.
 - Before each attempt it also closes a leftover Files picker, goes to the phone's Home screen and
   starts the screen recording, so every video starts from the launcher → splash. Once per run it
   pushes `test_assets/crop_disease.jpg` to the device as `Pictures/farmerchat_test_tomato.jpg`; the
@@ -145,12 +147,15 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   like a normal answer), and on an answer without real text. There is **no answer-time limit**: a
   single UI sample says nothing about performance (measure latency in the backend); a hang still
   fails, because the waits time out.
-- After an answer, chat tests assert the **Share button** and the **follow-up questions**
-  (`chat_suggested_questions`): a `scrollUntilVisible` to each, followed by an explicit
-  `assertVisible` with a readable label. Only FC-CHAT-01 (TC03) taps a suggestion, via
-  `helpers/followup_via_suggestion.yaml`.
+- After an answer, chat tests assert the **Share button** only: a `scrollUntilVisible` to it,
+  then an explicit `assertVisible` with a readable label. What the agent posts **after** the
+  answer (confirmation cards such as save crop / gender, late clarifications) and the
+  **follow-up questions** (`chat_suggested_questions`) belong to **FC-CHAT-01 (TC03) only**: it
+  sets `output.handleFollowUps = true` before `wait_for_answer`, asserts the follow-up questions
+  and taps one via `helpers/followup_via_suggestion.yaml`. No other test sets the flag — each
+  extra agent turn costs time and saves data to the account.
 - Chat tests check **functionality only** — every turn completes, and the answer shows its Share
-  button and follow-up questions. The user's own bubbles (`chat_user_message`) are **not**
+  button. The user's own bubbles (`chat_user_message`) are **not**
   asserted: the tag is unreliable in 4.1.7 (listed for the developer). Never assert what the AI says (crop, relevance, place names): that's covered by
   the separate evals project.
 - **Tags only:** when a check fails because a testTag is missing or drops out, don't work around it
@@ -168,12 +173,12 @@ show confirmation chips after it (save crop, gender) instead of suggestions. `AG
 `config/env.yaml` marks an agentic APK (enables FC-AGENT-01, which *requires* a clarification);
 set it false for a non-agentic APK. Always wait for
 answers with `helpers/wait_for_answer.yaml` (handles both build types; taps the first chip of any
-clarification — except the photo card, where it's the 3rd chip, "Continue without one/photo"
-(by text, else `chat_clarification_option_2`) — and of any confirmation, found by
-`chat_confirmation_option_0`; the agent's turns are awaited between taps, nothing is asserted while
-it's working). On agentic builds the suggestions come after
-any confirmation card, at the end of the chat, so scroll down to them before asserting them; never
-type a follow-up. Each Maestro check on an absent element costs ~3.5s here, so keep
+clarification before the answer — except the photo card, where it's the 3rd chip, "Continue
+without one/photo" (by text, else `chat_clarification_option_2`); the agent's turns are awaited
+between taps, nothing is asserted while it's working). Only with `output.handleFollowUps` (TC03)
+does it also answer a confirmation after the answer (first chip, found by
+`chat_confirmation_option_0`) and wait for the suggestions, which come after any confirmation card
+at the end of the chat; never type a follow-up. Each Maestro check on an absent element costs ~3.5s here, so keep
 `runFlow when` / optional checks to a minimum. Details in `docs/TEST_STRATEGY.md` §3a. Test APKs come from fc-compose
 `feature/dev-v2.5-mux-video` until a dedicated Maestro testTags branch exists.
 

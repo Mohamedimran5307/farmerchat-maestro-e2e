@@ -60,18 +60,8 @@ tags:
 - scrollUntilVisible:
     centerElement: false
     element:
-      id: "chat_suggested_questions"
-    direction: DOWN
-    timeout: 15000
-    label: "Scroll to the follow-up questions"
-- assertVisible:
-    id: "chat_suggested_questions"
-    label: "Follow-up questions shown after the answer"
-- scrollUntilVisible:
-    centerElement: false
-    element:
       id: "chat_share_btn"
-    direction: UP
+    direction: DOWN
     timeout: 10000
     label: "Scroll to the Share button"
 - assertVisible:

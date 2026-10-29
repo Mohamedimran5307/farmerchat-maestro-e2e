@@ -61,6 +61,15 @@ tags:
     visible:
       id: "chat_screen"
     timeout: 15000
+# The chat reopens on its latest turn; if the agent asked a clarification
+# first, this run's question sits above it, off screen.
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      text: ${'.*' + output.runTag + '.*'}
+    direction: UP
+    timeout: 20000
+    label: "Scroll up to this run's question"
 - assertVisible:
     text: ${'.*' + output.runTag + '.*'}
     label: "Reopened conversation is this run's question"

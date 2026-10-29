@@ -4,8 +4,16 @@ appId: ${APP_ID}
 # WAIT FOR THE AI ANSWER (non-agentic + agentic) → check it
 # ============================================================
 # Call right after a question is sent (or a card / weather chat is
-# opened). Optional input:
-#   output.answerLabel  names this answer in the [AGENTIC] log lines
+# opened). Optional inputs:
+#   output.answerLabel      names this answer in the [AGENTIC] log lines
+#   output.handleFollowUps  true = also handle what the agent posts AFTER
+#                           the answer (confirmation cards: save crop,
+#                           gender; late clarifications) until the
+#                           follow-up questions show. Only FC-CHAT-01
+#                           (TC03) sets it; every other test stops once
+#                           the answer is done and asserts Share only —
+#                           each extra agent turn costs time and saves
+#                           data to the account.
 #
 # Agentic builds (4.1.7+) may first ask a clarification (numbered chips:
 # location card "Share location", or "Choose one" … "Don't see your
@@ -98,7 +106,8 @@ appId: ${APP_ID}
     label: "Answer has real text (a line of ≥ 20 characters)"
 - evalScript: ${console.log('[AGENTIC] ' + (output.answerLabel || 'answer') + ' - clarifications=' + output.clarifications)}
 
-# ── After the answer the agent may still post cards: a confirmation
+# ── (Only with output.handleFollowUps.) After the answer the agent may
+#    still post cards: a confirmation
 #    (save crop, gender …) or another clarification — sometimes seconds
 #    after the answer (seen 19 Oct: a "save rice" card arrived after the
 #    check had run; a symptom card followed a confirmation). Keep handling
@@ -108,75 +117,78 @@ appId: ${APP_ID}
 #    turn. Cards are looked for BELOW the answer's Share row, so answered
 #    cards from before the answer don't count. What a card says is not
 #    checked (AI content — covered by the evals project). ──
-- repeat:
-    while:
-      notVisible:
-        id: "chat_suggested_questions"
-    times: 4
+- runFlow:
+    when:
+      true: ${output.handleFollowUps === true}
     commands:
-      # Gives a late card / the suggestions time to arrive and brings the
-      # end of the chat into view.
-      - scrollUntilVisible:
-          centerElement: false
-          element:
-            id: "chat_suggested_questions"
-          direction: DOWN
-          timeout: 8000
-          optional: true
-      - evalScript: ${output.lateTapped = false}
-      # A clarification card (title, footer, location or photo card).
-      - runFlow:
-          when:
-            visible:
-              text: "Choose one|Don't see your option.*|Share location|Add one clear photo.*"
-              below:
-                id: "chat_share_btn"
+      - repeat:
+          while:
+            notVisible:
+              id: "chat_suggested_questions"
+          times: 4
           commands:
-            - runFlow: tap_first_clarification_chip.yaml
-            - evalScript: ${output.lateTapped = output.chipDone == true}
-            - evalScript: ${console.log('[AGENTIC] ' + (output.answerLabel || 'answer') + ' - clarification after the answer answered')}
-      # A confirmation card (save crop, gender …), by its tag — a plain
-      # "1" under the Share row also matches a suggestion row when the
-      # suggestions block drops out of the tree (seen 20 Oct: a suggestion
-      # was tapped as if it were a confirmation).
-      - runFlow:
-          when:
-            true: ${!output.lateTapped}
-            visible:
-              id: "chat_confirmation_option_0"
-          commands:
-            # Its label is only logged; the app's accessibility bug can collapse
-            # the chip to a node without text, so read it only when it's there.
-            - evalScript: ${output.confLabel = ''}
+            # Gives a late card / the suggestions time to arrive and brings the
+            # end of the chat into view.
+            - scrollUntilVisible:
+                centerElement: false
+                element:
+                  id: "chat_suggested_questions"
+                direction: DOWN
+                timeout: 8000
+                optional: true
+            - evalScript: ${output.lateTapped = false}
+            # A clarification card (title, footer, location or photo card).
             - runFlow:
                 when:
                   visible:
-                    text: "(?!1$).{2,}"
-                    childOf:
-                      id: "chat_confirmation_option_0"
+                    text: "Choose one|Don't see your option.*|Share location|Add one clear photo.*"
+                    below:
+                      id: "chat_share_btn"
                 commands:
-                  - copyTextFrom:
-                      text: "(?!1$).{2,}"
-                      childOf:
-                        id: "chat_confirmation_option_0"
-                  - evalScript: ${output.confLabel = maestro.copiedText || ''}
-            - tapOn:
-                id: "chat_confirmation_option_0"
-            - evalScript: ${console.log('[AGENTIC] ' + (output.answerLabel || 'answer') + ' - confirmation answered with first chip - ' + output.confLabel)}
-            - evalScript: ${output.lateTapped = true}
-      # After a tap, let the agent finish its next turn.
-      - runFlow:
-          when:
-            true: ${output.lateTapped}
-          commands:
-            - extendedWaitUntil:
-                visible:
-                  text: "Getting your .*"
-                timeout: 4000
-                optional: true
-            - extendedWaitUntil:
-                notVisible:
-                  text: "Getting your .*"
-                timeout: 90000
-                label: "Agent finished its turn after the card"
-
+                  - runFlow: tap_first_clarification_chip.yaml
+                  - evalScript: ${output.lateTapped = output.chipDone == true}
+                  - evalScript: ${console.log('[AGENTIC] ' + (output.answerLabel || 'answer') + ' - clarification after the answer answered')}
+            # A confirmation card (save crop, gender …), by its tag — a plain
+            # "1" under the Share row also matches a suggestion row when the
+            # suggestions block drops out of the tree (seen 20 Oct: a suggestion
+            # was tapped as if it were a confirmation).
+            - runFlow:
+                when:
+                  true: ${!output.lateTapped}
+                  visible:
+                    id: "chat_confirmation_option_0"
+                commands:
+                  # Its label is only logged; the app's accessibility bug can collapse
+                  # the chip to a node without text, so read it only when it's there.
+                  - evalScript: ${output.confLabel = ''}
+                  - runFlow:
+                      when:
+                        visible:
+                          text: "(?!1$).{2,}"
+                          childOf:
+                            id: "chat_confirmation_option_0"
+                      commands:
+                        - copyTextFrom:
+                            text: "(?!1$).{2,}"
+                            childOf:
+                              id: "chat_confirmation_option_0"
+                        - evalScript: ${output.confLabel = maestro.copiedText || ''}
+                  - tapOn:
+                      id: "chat_confirmation_option_0"
+                  - evalScript: ${console.log('[AGENTIC] ' + (output.answerLabel || 'answer') + ' - confirmation answered with first chip - ' + output.confLabel)}
+                  - evalScript: ${output.lateTapped = true}
+            # After a tap, let the agent finish its next turn.
+            - runFlow:
+                when:
+                  true: ${output.lateTapped}
+                commands:
+                  - extendedWaitUntil:
+                      visible:
+                        text: "Getting your .*"
+                      timeout: 4000
+                      optional: true
+                  - extendedWaitUntil:
+                      notVisible:
+                        text: "Getting your .*"
+                      timeout: 90000
+                      label: "Agent finished its turn after the card"

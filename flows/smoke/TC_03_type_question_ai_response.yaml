@@ -17,6 +17,10 @@ tags:
 - hideKeyboard
 - runFlow: ../../helpers/composer_send.yaml
 - evalScript: ${output.answerLabel = 'first_answer'}
+# The one test that handles what the agent posts after the answer
+# (confirmation cards such as save crop / gender, if one appears) and
+# checks the follow-up questions; every other chat test stops at Share.
+- evalScript: ${output.handleFollowUps = true}
 - runFlow: ../../helpers/wait_for_answer.yaml
 
 # The answer ends with its action row and the follow-up questions

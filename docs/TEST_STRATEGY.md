@@ -58,7 +58,7 @@ A flow is ready to merge only if all of these hold:
    for the new one, so the old row can't pass the check. Don't anchor checks to the question
    text: long answers scroll it off screen, and Maestro can only anchor to visible elements. For AI answers use `helpers/wait_for_answer.yaml`:
    it requires a complete answer and fails on the inline error and on the failure reply; the
-   test then asserts the follow-up questions and the Share button.
+   test then asserts the Share button (only FC-CHAT-01 also asserts the follow-up questions).
 4. **Unique test data.** Anything later looked up (history entries, names) carries a run-unique
    value, so an older run's data can't produce a false pass.
 5. **Stable selectors.** Use testTag ids. Text or content-desc is allowed only with a comment and a
@@ -80,15 +80,17 @@ Non-agentic builds answer directly and end with suggestions. **Every test must p
 
 - Send questions and wait with `helpers/wait_for_answer.yaml`. Rule: **always tap the first chip** — except the photo clarification ("Add one clear photo"), where it's always the **3rd chip** ("Continue without one" / "Continue without photo" by text, else `chat_clarification_option_2`) —
   for a clarification before the answer (the location card's first chip is "Give permission", and
-  the Android prompt is then granted) and for a confirmation after it (found by `chat_confirmation_option_0`, so a suggestion row is never
-  mistaken for one; late cards after the answer are handled until the suggestions show). The answer counts as complete once
-  the Share/Listen row or the suggestions show.
+  the Android prompt is then granted). Cards **after** the answer (a confirmation such as save crop /
+  gender, found by `chat_confirmation_option_0`, or a late clarification) are handled only when the
+  test sets `output.handleFollowUps = true` — **FC-CHAT-01 (TC03) alone**; every other test leaves
+  them untouched (each extra agent turn costs time and saves data to the account). The answer counts
+  as complete once the Share/Listen row or the suggestions show.
 - **Functional checks only.** These tests prove the chat *works*, not that the AI is right: what
   an answer, card or suggestion says (relevance, crop consistency, language) is covered by the
   separate evals project (LLM judges). Never assert on AI wording here.
 - **Wait for the response, then assert.** Nothing is asserted while the agent is working: tap
-  through any clarification / confirmation chips, wait for the final response, then assert the
-  answer, then the follow-up questions and the Share button. The user's own bubbles
+  through any clarification chips, wait for the final response, then assert the answer and its
+  Share button. The user's own bubbles
   (`chat_user_message`) are not asserted — the tag is unreliable in 4.1.7 (it drops out even on
   visible bubbles); it's listed for the developer.
 - **Every turn must complete:** an answer counts as complete once the Share/Listen row or the
@@ -97,10 +99,11 @@ Non-agentic builds answer directly and end with suggestions. **Every test must p
   caught by its wording). There is no answer-time limit in UI tests: one sample per test says
   nothing about performance and only adds noise; answer latency (p50/p90 per build) is measured
   in the backend. A hang still fails, because the waits time out.
-- **Follow-ups:** after any confirmation, scroll to the end; the suggestions appear there. Use
-  `helpers/followup_via_suggestion.yaml` (tap the first, wait until the earlier suggestions leave the
-  screen so the old answer can't pass for the new one, then check the new answer). The follow-up
-  questions are **mandatory** after every answer: none shown is an app bug (hard failure).
+- **Follow-ups (FC-CHAT-01 / TC03 only):** after any confirmation, scroll to the end; the
+  suggestions appear there. Use `helpers/followup_via_suggestion.yaml` (tap the first, wait until
+  the earlier suggestions leave the screen so the old answer can't pass for the new one, then check
+  the new answer). In TC03 the follow-up questions are **mandatory**: none shown is an app bug (hard
+  failure). Other chat tests don't check them (decision 30 Oct 2026).
 - Don't require suggestions. A follow-up runs only when the answer offers suggestions (tap the
   first one); otherwise it's skipped, never typed.
 - **Watch first, scroll later.** While the app shows "Getting your answer… / location…", don't

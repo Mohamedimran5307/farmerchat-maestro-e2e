@@ -85,12 +85,16 @@ tags:
     text: ${output.firstQ}
 # Expand "Read full advice" when the card offers it (content-dependent).
 - runFlow: ../../helpers/open_full_advice.yaml
-# Suggestions only appear after the answer fully renders — the implicit
-# "wait for AI response".
+# The card's answer completes and shows its Share button.
+- evalScript: ${output.answerLabel = 'feed_card_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
 - scrollUntilVisible:
     centerElement: false
     element:
-      id: "chat_suggested_questions"
+      id: "chat_share_btn"
     direction: DOWN
-    timeout: 90000
-    speed: 75
+    timeout: 10000
+    label: "Scroll to the Share button"
+- assertVisible:
+    id: "chat_share_btn"
+    label: "Share button shown on the answer"
