@@ -427,10 +427,11 @@ dismiss_system_popup() {
 # SETUP TEST FUNCTION
 # ─────────────────────────────────────────────────────────────────────────────
 # Returns 0 if the Maestro driver port is currently listening on the
-# device, 1 otherwise. 7001 in hex = 1B59; appears in /proc/net/tcp once
-# the instrumented driver service is bound.
+# device, 1 otherwise. 7001 in hex = 1B59, state 0A = LISTEN. The driver
+# binds on IPv6 (::), so it shows in /proc/net/tcp6 — checking only
+# /proc/net/tcp never saw it and cost two 60s timeouts per run.
 driver_port_listening() {
-  adb -s $DEVICE_ID shell "cat /proc/net/tcp" 2>/dev/null | grep -qi "1B59"
+  adb -s $DEVICE_ID shell "cat /proc/net/tcp /proc/net/tcp6" 2>/dev/null | grep -qiE ":1B59 [0-9A-F:]+ 0A "
 }
 
 # Kill any stale Maestro instrumentation on the device. Safe to call
@@ -458,7 +459,11 @@ start_maestro_driver_detached() {
   local log_dir="${RUN_LOGS_DIR:-/tmp}"
   mkdir -p "$log_dir" 2>/dev/null
   local log_file="$log_dir/_maestro_driver_$(date +%H%M%S).log"
-  nohup adb -s $DEVICE_ID shell am instrument -w -e debug false \
+  # The class names the driver's gRPC server test; without it the runner
+  # starts every test in the APK and the process crashes. `\#` because the
+  # device shell would read a bare # as the start of a comment.
+  nohup adb -s $DEVICE_ID shell am instrument -w -m -e debug false \
+    -e class 'dev.mobile.maestro.MaestroDriverService\#grpcServer' \
     dev.mobile.maestro.test/androidx.test.runner.AndroidJUnitRunner \
     < /dev/null > "$log_file" 2>&1 &
   disown $! 2>/dev/null || true
