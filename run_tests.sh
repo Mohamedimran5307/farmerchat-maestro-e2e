@@ -838,9 +838,26 @@ run_test_attempt() {
     sleep 1
     # --bit-rate keeps file size predictable (~3 MB / minute at 4 Mbps).
     # No --size: let screenrecord pick the device native aspect ratio.
-    adb -s $DEVICE_ID shell screenrecord --bit-rate 4000000 --time-limit 180 "$DEVICE_REC_PATH" >/dev/null 2>&1 &
-    REC_ADB_PID=$!
-    sleep 1   # give screenrecord ~1s to initialize before the test runs
+    local REC_CMD="screenrecord --bit-rate 4000000 --time-limit 180 $DEVICE_REC_PATH"
+    case "$(tc_flow_path "$TC_FILE")" in
+      */smoke/*)
+        # Smoke videos record from the home screen, Maestro's start included.
+        adb -s $DEVICE_ID shell "$REC_CMD" >/dev/null 2>&1 &
+        REC_ADB_PID=$!
+        sleep 1   # give screenrecord ~1s to initialize before the test runs
+        ;;
+      *)
+        # Functional tests: Maestro takes ~10s to start before the flow's
+        # launchApp, so the recording waits on the phone for the app's
+        # process to appear (it was force-stopped above) and only then
+        # starts: the video opens on the launch. Gives up waiting after
+        # 60s and records anyway. `exec` leaves only screenrecord running
+        # once it starts, so the stop step below can tell the waiting
+        # loop and the recorder apart.
+        adb -s $DEVICE_ID shell "i=0; while ! pidof $APP_ID >/dev/null && [ \$i -lt 600 ]; do sleep 0.1; i=\$((i+1)); done; exec $REC_CMD" >/dev/null 2>&1 &
+        REC_ADB_PID=$!
+        ;;
+    esac
   fi
 
   local POPUP_PID=""
@@ -889,6 +906,9 @@ run_test_attempt() {
   # before we pull.
   if [ "$REC_ENABLED" = "1" ]; then
     adb -s $DEVICE_ID shell pkill -SIGINT screenrecord 2>/dev/null || true
+    # If the app never launched, a functional test's waiting loop is still
+    # there: end it so it can't start recording during the next test.
+    adb -s $DEVICE_ID shell pkill -f "pidof $APP_ID" 2>/dev/null || true
     [ -n "$REC_ADB_PID" ] && wait $REC_ADB_PID 2>/dev/null || true
     sleep 1
     if adb -s $DEVICE_ID pull "$DEVICE_REC_PATH" "$LOCAL_REC_PATH" >/dev/null 2>&1; then
