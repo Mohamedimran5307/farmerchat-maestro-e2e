@@ -1,122 +1,41 @@
 appId: ${APP_ID}
 ---
-# Handle device installation popups first (OPPO/realme; no-op elsewhere)
-- runFlow:
-    file: dismiss_system_popup.yaml
+# Gets from launch to home, whatever the app shows first. Idempotent: on a
+# returning launch home comes first and every step below is skipped.
 
-# Already on home (idempotent rerun) → skip every first-launch check.
-# Give a returning launch a moment to land on home before deciding.
+# Wait for whichever comes first — home or the language screen — instead
+# of giving each its own timeout.
 - extendedWaitUntil:
     visible:
-      id: "home_screen"
-    timeout: 5000
+      id: "home_screen|language_screen"
+    timeout: 15000
     optional: true
+
+# The "No internet" screen (error_screen) showed here once in ~120 runs;
+# checking for it cost ~5s on every test, so a launch that hits it now
+# fails at the home wait below and the runner's retry takes over.
+
+# Pick language and tap "Start using FarmerChat"
 - runFlow:
     when:
-      notVisible:
-        id: "home_screen"
+      visible:
+        id: "language_screen"
     commands:
-      # Wait for language screen
+      # The screen first applies a default language (spinner on that
+      # item) and drops the item tags until it's done, so allow for that.
       - extendedWaitUntil:
           visible:
-            id: "language_screen"
-          timeout: 8000
-          optional: true
-
-      # Handle "No internet" error screen
-      - runFlow:
-          when:
-            visible:
-              text: "Try again"
-          commands:
-            - tapOn: "Try again"
-            - extendedWaitUntil:
-                visible:
-                  id: "language_screen"
-                timeout: 8000
-                optional: true
-
-      # Pick language and tap "Start using FarmerChat"
-      - runFlow:
-          when:
-            visible:
-              id: "language_screen"
-          commands:
-            - extendedWaitUntil:
-                visible:
-                  id: "language_item_${LANGUAGE_CODE}"
-                timeout: 5000
-            - tapOn:
-                id: "language_item_${LANGUAGE_CODE}"
-            - extendedWaitUntil:
-                visible:
-                  id: "language_start_button"
-                timeout: 5000
-            - tapOn:
-                id: "language_start_button"
-
-      # Notification permission can appear a few seconds AFTER language pick
+            id: "language_item_${LANGUAGE_CODE}"
+          timeout: 15000
+      - tapOn:
+          id: "language_item_${LANGUAGE_CODE}"
       - extendedWaitUntil:
           visible:
-            id: "com.android.permissioncontroller:id/permission_allow_button"
-          timeout: 8000
-          optional: true
-      - runFlow:
-          when:
-            visible:
-              id: "com.android.permissioncontroller:id/permission_allow_button"
-          commands:
-            - tapOn:
-                id: "com.android.permissioncontroller:id/permission_allow_button"
+            id: "language_start_button"
+          timeout: 5000
+      - tapOn:
+          id: "language_start_button"
 
-      # Legacy text fallback for older builds that surface "Allow" as a custom button
-      - runFlow:
-          when:
-            visible:
-              text: "Allow"
-          commands:
-            - tapOn: "Allow"
-
-      # Legacy "Skip for now" overlay (older onboarding only)
-      - runFlow:
-          when:
-            visible:
-              text: "Skip for now"
-          commands:
-            - tapOn: "Skip for now"
-
-      # Legacy name screen (newer APK skips this entirely)
-      - runFlow:
-          when:
-            visible:
-              id: "name_save_button"
-          commands:
-            - tapOn:
-                id: "name_input"
-            - longPressOn:
-                id: "name_input"
-            - runFlow:
-                when:
-                  visible:
-                    text: "Select all"
-                commands:
-                  - tapOn: "Select all"
-            - eraseText: 1
-            - inputText: "${USER_NAME}"
-            - hideKeyboard
-            - tapOn:
-                id: "name_save_button"
-
-      # Legacy location interstitial
-      - runFlow:
-          when:
-            visible:
-              id: "location_interstitial_skip"
-          commands:
-            - tapOn:
-                id: "location_interstitial_skip"
-
-# Final wait for home screen
 - extendedWaitUntil:
     visible:
       id: "home_screen"

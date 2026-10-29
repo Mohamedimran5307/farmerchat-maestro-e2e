@@ -547,15 +547,15 @@ setup_test() {
   fi
   adb -s $DEVICE_ID shell "run-as $APP_ID sh -c 'rm -rf shared_prefs/* files/* cache/* databases/*'" 2>/dev/null || true
   adb -s $DEVICE_ID forward tcp:7001 tcp:7001 2>/dev/null
-  sleep 2
+  sleep 1
   if ! ensure_maestro_driver; then
     # Don't bail — let `maestro test` fail with its own error so the
     # standard retry / report path takes over. But surface the cause to
     # the terminal so it's obvious why the upcoming run will fail fast.
     echo -e "${YELLOW}WARNING: Maestro driver did not come up on tcp:7001 — upcoming maestro test will likely fail with UNAVAILABLE / tcp:7001: closed${NC}" >&3
   fi
-  adb -s $DEVICE_ID shell am start --activity-clear-task -n $APP_ID/org.digitalgreen.farmer.chatbot.MainActivity 2>/dev/null
-  sleep 3
+  # No pre-launch of the app here: every flow's launchApp starts it anyway
+  # (after stopping it), so a warm-up launch only added ~4s per test.
   [ "$POPUP_LOOP_ENABLED" = "1" ] && dismiss_system_popup
 }
 
@@ -835,7 +835,7 @@ run_test_attempt() {
     # force-stopped the app), so the previous test's last screen isn't
     # on camera and the flow's launchApp shows the splash screen.
     adb -s $DEVICE_ID shell input keyevent KEYCODE_HOME 2>/dev/null || true
-    sleep 2
+    sleep 1
     # --bit-rate keeps file size predictable (~3 MB / minute at 4 Mbps).
     # No --size: let screenrecord pick the device native aspect ratio.
     adb -s $DEVICE_ID shell screenrecord --bit-rate 4000000 --time-limit 180 "$DEVICE_REC_PATH" >/dev/null 2>&1 &
@@ -890,7 +890,7 @@ run_test_attempt() {
   if [ "$REC_ENABLED" = "1" ]; then
     adb -s $DEVICE_ID shell pkill -SIGINT screenrecord 2>/dev/null || true
     [ -n "$REC_ADB_PID" ] && wait $REC_ADB_PID 2>/dev/null || true
-    sleep 2
+    sleep 1
     if adb -s $DEVICE_ID pull "$DEVICE_REC_PATH" "$LOCAL_REC_PATH" >/dev/null 2>&1; then
       adb -s $DEVICE_ID shell "rm -f $DEVICE_REC_PATH" 2>/dev/null || true
     else
