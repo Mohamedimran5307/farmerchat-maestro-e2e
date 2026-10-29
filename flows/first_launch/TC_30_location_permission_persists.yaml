@@ -2,9 +2,9 @@ appId: ${APP_ID}
 name: "TC30 - Location Permission Persists After Grant"
 # id: FC-LOC-03
 # priority: P1
-# description: Location granted once isn't asked for again on the next weather tap.
+# description: Location granted once is still used after the app restarts: weather opens the chat directly and answers without asking for location.
 tags:
-  - home
+  - chat
   - regression
   - first_launch
 ---
@@ -19,7 +19,7 @@ tags:
     id: "home_weather_button"
 - extendedWaitUntil:
     visible:
-      id: "location_interstitial_cta_btn"
+      id: "location_interstitial_screen"
     timeout: 15000
     label: "Share-location screen shown (location not granted yet)"
 - tapOn:
@@ -43,6 +43,12 @@ tags:
       id: "home_screen"
     timeout: 15000
 
+# ── Restart the app (state kept) ──
+# "Persists" means after a restart, not just later in the same session.
+- stopApp
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+
 # ── Second visit: straight to the chat ──
 - tapOn:
     id: "home_weather_button"
@@ -50,16 +56,55 @@ tags:
     visible:
       id: "chat_screen"
     timeout: 15000
-    label: "Second visit opens the chat directly"
+    label: "After a restart, weather opens the chat directly"
 - assertNotVisible:
-    id: "location_interstitial_cta_btn"
-    label: "No share-location screen on a second visit"
+    id: "location_interstitial_screen"
+    label: "No share-location screen after the restart"
 - assertNotVisible:
     id: "com.android.permissioncontroller:id/permission_allow_foreground_only_button|com.android.permissioncontroller:id/permission_allow_button"
-    label: "No system permission prompt on a second visit"
+    label: "No system permission prompt after the restart"
+
+# The grant really took effect: once the agent's first turn is in, it
+# hasn't asked for location. Checked before wait_for_answer, which would
+# tap the card's first chip and hide the problem.
+- extendedWaitUntil:
+    visible:
+      text: "Getting your .*"
+    timeout: 4000
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      text: "Getting your .*"
+    timeout: 90000
+- assertNotVisible:
+    id: "chat_clarification_card_location"
+    label: "Chat doesn't ask for location (the grant is used)"
+- evalScript: ${output.answerLabel = 'weather_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 15000
+    label: "Scroll to the follow-up questions"
+- assertVisible:
+    id: "chat_suggested_questions"
+    label: "Follow-up questions shown after the answer"
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_share_btn"
+    direction: UP
+    timeout: 10000
+    label: "Scroll to the Share button"
+- assertVisible:
+    id: "chat_share_btn"
+    label: "Share button shown on the answer"
 - tapOn:
     id: "appbar_logo_left_btn"
 - extendedWaitUntil:
     visible:
       id: "home_screen"
     timeout: 15000
+    label: "Back on the home screen"

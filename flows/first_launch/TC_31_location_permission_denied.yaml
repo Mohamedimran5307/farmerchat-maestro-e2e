@@ -4,7 +4,7 @@ name: "TC31 - Location Denied → Continue Without Location → Answer"
 # priority: P1
 # description: With location denied, weather still answers after Continue without location.
 tags:
-  - home
+  - chat
   - regression
   - first_launch
 ---
@@ -18,7 +18,7 @@ tags:
     id: "home_weather_button"
 - extendedWaitUntil:
     visible:
-      id: "location_interstitial_cta_btn"
+      id: "location_interstitial_screen"
     timeout: 15000
     label: "Share-location screen shown (location not granted yet)"
 - tapOn:
@@ -31,44 +31,52 @@ tags:
 - tapOn:
     id: "com.android.permissioncontroller:id/permission_deny_button"
 
-# The chat opens anyway and asks for location in the conversation.
+# ── Denied: the prompt closes and the chat opens anyway ──
 - extendedWaitUntil:
-    visible: "Share location"
+    visible:
+      id: "chat_screen"
+    timeout: 15000
+    label: "Chat opens after denying"
+- assertNotVisible:
+    id: "com.android.permissioncontroller:id/permission_deny_button"
+    label: "System prompt closed"
+- assertNotVisible:
+    id: "location_interstitial_screen"
+    label: "Share-location screen closed"
+- extendedWaitUntil:
+    visible:
+      id: "chat_clarification_card_location"
     timeout: 60000
     label: "Chat asks for location (it was denied)"
 
-# Decline in the chat too. Not via wait_for_answer: it would tap
-# "Give permission" (the first chip) on this card.
-- tapOn: "Continue without location"
-
-# A complete answer follows without location.
-- extendedWaitUntil:
-    visible:
-      text: "Getting your .*"
-    timeout: 4000
-    optional: true
-- extendedWaitUntil:
-    notVisible:
-      text: "Getting your .*"
-    timeout: 90000
+# ── Decline in the chat too → complete answer ──
+# Tapped here, not by wait_for_answer: it would pick the first chip
+# ("Give permission").
+- tapOn:
+    id: "chat_clarification_option_1"
+    label: "Tap Continue without location"
+- evalScript: ${output.answerLabel = 'weather_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
 - scrollUntilVisible:
     centerElement: false
     element:
-      id: "chat_share_btn|chat_suggested_questions"
+      id: "chat_suggested_questions"
     direction: DOWN
     timeout: 15000
-    label: "Scroll to the end of the answer"
+    label: "Scroll to the follow-up questions"
 - assertVisible:
-    id: "chat_share_btn|chat_suggested_questions"
-    label: "Answer completed without location"
-- assertNotVisible:
-    id: "chat_retry_btn"
-    label: "Answer is not the inline error"
-- assertNotVisible:
-    text: "(?is).*(had a problem just now|ask your question again).*"
-    childOf:
-      id: "chat_ai_message"
-    label: "Answer is not the 'Sorry, I had a problem' failure reply"
+    id: "chat_suggested_questions"
+    label: "Follow-up questions shown after the answer"
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_share_btn"
+    direction: UP
+    timeout: 10000
+    label: "Scroll to the Share button"
+- assertVisible:
+    id: "chat_share_btn"
+    label: "Share button shown on the answer"
 
 - tapOn:
     id: "appbar_logo_left_btn"
@@ -76,3 +84,4 @@ tags:
     visible:
       id: "home_screen"
     timeout: 15000
+    label: "Back on the home screen"
