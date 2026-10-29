@@ -1,0 +1,46 @@
+appId: ${APP_ID}
+name: "TC32 - Returning User Cold Starts Offline → Cached Home"
+# id: FC-ERR-01
+# priority: P2
+# description: After reaching home online, a cold start in airplane mode opens the cached home, not the no-internet screen.
+tags:
+  - error
+  - regression
+  - offline
+# If any step fails while offline, turn airplane mode back off so the
+# rest of the run isn't offline too.
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+# ── Online: language screen → home, fully loaded ──
+- setAirplaneMode: disabled
+- launchApp
+- runFlow: ../../helpers/complete_onboarding.yaml
+- extendedWaitUntil:
+    visible:
+      id: "home_weather_button"
+      containsDescendants:
+        - text: ".*°.*"
+    timeout: 15000
+    label: "Home loaded (weather shows a temperature)"
+
+# ── Offline, then cold start (data kept) ──
+- setAirplaneMode: enabled
+- stopApp
+- launchApp
+
+# Expected: the cached home, not the no-internet screen (the fresh-user
+# case, where the no-internet screen is correct, is TC33).
+- extendedWaitUntil:
+    visible:
+      id: "home_screen|error_screen"
+    timeout: 30000
+- assertVisible:
+    id: "home_screen"
+    label: "Cached home shown offline"
+- assertNotVisible:
+    id: "error_screen"
+    label: "No no-internet screen for a returning user"
+- assertNotVisible:
+    id: "language_screen"
+    label: "Not sent back through onboarding"
