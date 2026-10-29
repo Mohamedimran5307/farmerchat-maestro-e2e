@@ -30,7 +30,7 @@ must be fast and deterministic. Current smoke suite:
 | FC-PHOTO-01 | Gallery photo → answer |
 | FC-LOC-01 | Weather → share location (clean state, every grant step required) → answer |
 | FC-AUTH-01 | Sign up → history → log out → still logged out after relaunch |
-| FC-TTS-01 | Listen to an answer (**quarantined**: Share/Listen accessibility bug, still in 4.1.7) |
+| FC-TTS-01 | Listen to an answer |
 
 Not smoke: negative and error paths, alternate entry points to a journey already covered,
 exhaustive UI checks (such as scrolling the whole feed), and anything flaky.

@@ -15,7 +15,7 @@ YAML flows, reusable sub-flows, and bash runners that orchestrate Maestro + adb 
 
   | Batch folder | IDs | Scope |
   |---|---|---|
-  | `flows/smoke/` | TC01–TC08 | **Smoke suite** — must-pass core journeys run first on every build: fresh install, agentic clarification, typed Q→A, feed card, gallery photo, weather/location, account lifecycle, listen (quarantined) |
+  | `flows/smoke/` | TC01–TC08 | **Smoke suite** — must-pass core journeys run first on every build: fresh install, agentic clarification, typed Q→A, feed card, gallery photo, weather/location, account lifecycle, listen |
   | `flows/core/` | TC09–TC20 | Secondary positive flows: full feed scroll, voice, Settings sign-up, share, camera, profile cards, language, sign-up entry screens |
   | `flows/settings_help/` | TC21–TC25 | Settings and Help screens |
   | `flows/first_launch/` | TC26–TC31 | Location interstitial, location permission persists / denied, and first-launch legal links |
@@ -198,7 +198,9 @@ at the end of the chat; never type a follow-up. Each Maestro check on an absent 
   use `centerElement: false` for chat action rows and the top/bottom of the feed.
 - `copyTextFrom` / `below` / `above` return the **first match in hierarchy order**, not the nearest.
 - The answer's Share/Listen row intermittently drops out of the accessibility tree (Listen missing,
-  Share shrunk) — an app bug still present in 4.1.7; FC-TTS-01 (Listen) is quarantined because of it.
+  Share shrunk) — an app bug still present in 4.1.7, seen when the chat updates after the answer
+  (confirmation cards, more turns). FC-TTS-01 (Listen) was quarantined for it; since tests stop at
+  the answer (30 Oct) it passed 3/3 and runs again — re-quarantine with evidence if it recurs.
   The same bug also collapses suggestion rows, drops the Listen state tags and, during loading,
   the `chat_user_message` tag (details in `TESTTAG_REQUESTS_CRITICAL.md`).
 - Some devices (e.g. Vivo) open the **Files** picker for the gallery, others the Photo picker; FC-PHOTO-01
