@@ -1,38 +1,86 @@
 appId: ${APP_ID}
-name: "TC26 - Location Interstitial: Skip Returns to Home"
+name: "TC26 - Weather: Skip Share Location → Continue Without Location → Answer"
 # id: FC-LOC-02
 # priority: P2
-# description: Skipping the share-location screen returns to home.
-# TODO: location_interstitial_skip is the OLD APK's id for the Skip
-# button. On the new APK the Share-Location CTA is
-# location_interstitial_cta_btn; the Skip button may be
-# location_interstitial_btn_skip or rendered as text "No thanks" /
-# "Skip" — needs a live-device check on the interstitial screen.
+# description: Skipping the share-location screen opens the chat, which asks for location; continuing without it gives a complete answer.
 tags:
-  - home
-  - onboarding
+  - chat
   - regression
   - first_launch
 ---
-- launchApp
+# Location "never asked" (unset) so the share-location screen shows on
+# every run: the runner's data wipe doesn't reset the permission, and an
+# earlier test may have granted it.
+- launchApp:
+    clearState: true
+    permissions:
+      location: unset
 - runFlow: ../../helpers/complete_onboarding.yaml
 
+# ── Weather → share-location screen ──
 - tapOn:
     id: "home_weather_button"
-
 - extendedWaitUntil:
     visible:
-      id: "appbar_default_right_btn"
-    timeout: 10000
-- assertVisible:
-    id: "appbar_default_right_btn"
+      id: "location_interstitial_screen"
+    timeout: 15000
+    label: "Share-location screen shown (location not granted yet)"
+
+# ── Skip: straight to the chat, no system prompt ──
 - tapOn:
     id: "appbar_default_right_btn"
+    label: "Tap Skip"
+- extendedWaitUntil:
+    visible:
+      id: "chat_screen"
+    timeout: 10000
+    label: "Skip opens the weather chat"
+- assertNotVisible:
+    id: "location_interstitial_screen"
+    label: "Share-location screen closed"
+- assertNotVisible:
+    id: "com.android.permissioncontroller:id/permission_allow_foreground_only_button|com.android.permissioncontroller:id/permission_allow_button|com.android.permissioncontroller:id/permission_deny_button"
+    label: "No system location prompt after Skip"
+- extendedWaitUntil:
+    visible:
+      id: "chat_clarification_card_location"
+    timeout: 60000
+    label: "Chat asks for location"
 
-- back
+# ── Continue without location → complete answer ──
+# Tapped here, not by wait_for_answer: it would pick the first chip
+# ("Give permission").
+- tapOn:
+    id: "chat_clarification_option_1"
+    label: "Tap Continue without location"
+- evalScript: ${output.answerLabel = 'weather_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions"
+    direction: DOWN
+    timeout: 15000
+    label: "Scroll to the follow-up questions"
+- assertVisible:
+    id: "chat_suggested_questions"
+    label: "Follow-up questions shown after the answer"
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_share_btn"
+    direction: UP
+    timeout: 10000
+    label: "Scroll to the Share button"
+- assertVisible:
+    id: "chat_share_btn"
+    label: "Share button shown on the answer"
+
+# ── Leave ──
+- tapOn:
+    id: "appbar_logo_left_btn"
 - extendedWaitUntil:
     visible:
       id: "home_screen"
     timeout: 15000
-- assertVisible:
-    id: "home_screen"
+    label: "Back on the home screen"
