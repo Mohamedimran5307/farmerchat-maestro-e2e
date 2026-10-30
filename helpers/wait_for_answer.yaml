@@ -99,6 +99,17 @@ appId: ${APP_ID}
     childOf:
       id: "chat_ai_message"
     label: "Answer is not the 'Sorry, I had a problem' failure reply"
+# The screen is at the end of the answer now; a short-line answer (weather
+# cards) can have its longer lines above it, so look up for one.
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      text: "(?s).{20,}"
+      childOf:
+        id: "chat_ai_message"
+    direction: UP
+    timeout: 10000
+    optional: true
 - assertVisible:
     text: "(?s).{20,}"
     childOf:

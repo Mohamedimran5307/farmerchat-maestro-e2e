@@ -52,6 +52,21 @@ tags:
 - assertVisible:
     id: "home_feed_card_gender"
     label: "Gender question card shown on the feed"
+# Bring the whole card into view: the last option can sit under the input
+# bar. Small swipes along the left margin (a centre swipe can land on the
+# crops card's own list).
+- repeat:
+    while:
+      notVisible:
+        id: "single_select_card_option_3"
+        childOf:
+          id: "home_feed_card_gender"
+    times: 3
+    commands:
+      - swipe:
+          start: 2%, 70%
+          end: 2%, 55%
+          duration: 400
 # Its four options (Female / Male / Other / Prefer not to say).
 - assertVisible:
     id: "single_select_card_option_0"

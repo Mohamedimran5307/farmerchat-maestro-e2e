@@ -2,6 +2,7 @@ appId: ${APP_ID}
 name: "TC27 - First-Launch: Open Terms of Use from Language Screen"
 # id: FC-LEGAL-01
 # priority: P2
+# quarantine: Blocked by missing tags (4.1.7) — the Terms / Privacy links on the language screen are not separate tagged elements (language_terms_btn / language_privacy_btn don't exist), so they can't be tapped. Requested in TESTTAG_REQUESTS_CRITICAL.md (row 8). Remove once the tags ship.
 # description: Language screen's Terms of Use link opens the document.
 # Note: on this APK build the language_legal_text + Terms of Use /
 # Privacy Policy links only become visible AFTER a language is
