@@ -1,8 +1,12 @@
 appId: ${APP_ID}
-name: "TC10 - Speak Button Opens Voice-Input Overlay"
+name: "TC10 - Voice Input: Overlay → Send → Answer or Retry"
 # id: FC-VOICE-01
 # priority: P2
-# description: Voice button opens the listening overlay; no speech offers Retry.
+# description: Voice overlay listens and sends; heard speech gets an answer, silence offers Retry.
+# The test doesn't speak, but the mic may pick up room noise. Both
+# outcomes are valid: something transcribed → the voice message is sent
+# and must get a complete answer (Share button); nothing transcribed →
+# the inline error with Retry.
 tags:
   - home
   - regression
@@ -19,8 +23,8 @@ tags:
       id: "chat_voice_input_listening"
     timeout: 5000
 
-# Send without speaking: the app can't transcribe anything and offers
-# Retry. Short settle timeout — the overlay animates while listening.
+# Send without speaking. Short settle timeout — the overlay animates
+# while listening.
 - extendedWaitUntil:
     visible:
       id: "chat_voice_input_send_btn"
@@ -28,9 +32,47 @@ tags:
 - tapOn:
     id: "chat_voice_input_send_btn"
     waitToSettleTimeoutMs: 500
+
+# Either the error with Retry (nothing heard) or the loader (something
+# was transcribed and sent as a question).
 - extendedWaitUntil:
     visible:
-      id: "chat_retry_btn"
+      id: "chat_retry_btn|chat_loading"
     timeout: 15000
-- assertVisible:
-    id: "chat_retry_btn"
+    label: "Voice message handled (Retry or answer loading)"
+- extendedWaitUntil:
+    notVisible:
+      id: "chat_loading"
+    timeout: 90000
+- evalScript: ${output.voiceHeard = true}
+
+# ── Nothing heard → Retry is offered ──
+- runFlow:
+    when:
+      visible:
+        id: "chat_retry_btn"
+    commands:
+      - evalScript: ${output.voiceHeard = false}
+      - assertVisible:
+          id: "chat_retry_btn"
+          label: "No speech: Retry offered"
+      - evalScript: ${console.log('[VOICE] nothing transcribed - Retry shown')}
+
+# ── Something heard → it's answered like a typed question ──
+- runFlow:
+    when:
+      true: ${output.voiceHeard}
+    commands:
+      - evalScript: ${console.log('[VOICE] speech transcribed - waiting for the answer')}
+      - evalScript: ${output.answerLabel = 'voice_answer'}
+      - runFlow: ../../helpers/wait_for_answer.yaml
+      - scrollUntilVisible:
+          centerElement: false
+          element:
+            id: "chat_share_btn"
+          direction: DOWN
+          timeout: 10000
+          label: "Scroll to the Share button"
+      - assertVisible:
+          id: "chat_share_btn"
+          label: "Share button shown on the answer"

@@ -201,7 +201,7 @@ outdated folder layout; use `run_tests.sh`.
 | `smoke` | TC07 | FC-AUTH-01 | Account Lifecycle: Sign Up → History → Log Out | P0 | sign-in |
 | `smoke` | TC08 | FC-TTS-01 | Listen to AI Response (TTS Playback) | P0 | ⏸ quarantined (Listen accessibility bug) |
 | `core` | TC09 | FC-FEED-02 | Home Feed Full Scroll → Back to First Card → Chat | P1 | |
-| `core` | TC10 | FC-VOICE-01 | Speak Button Opens Voice-Input Overlay | P2 | quiet room |
+| `core` | TC10 | FC-VOICE-01 | Voice Input: Overlay → Send → Answer or Retry | P2 | |
 | `core` | TC11 | FC-AUTH-02 | Full Sign Up via Settings (Phone + OTP → Signed In) | P0 | sign-in |
 | `core` | TC12 | FC-CHAT-02 | Share AI Response via System Chooser | P1 | |
 | `core` | TC13 | FC-PHOTO-02 | Photo Question from Camera → AI Response | P2 | |
@@ -272,6 +272,5 @@ The full rules are in `docs/TEST_STRATEGY.md` and `CLAUDE.md`.
 | The language list never loads; every test fails at onboarding | The phone is offline. Check Wi-Fi: an airplane-mode toggle can leave Wi-Fi off on some phones. |
 | Sign-up tests are skipped | `config/env.local.yaml` is missing or has empty values. |
 | "Send via SMS" does nothing at sign-up | The device has hit the 2-numbers limit. Use only `PHONE_NUMBER` and `NEW_PHONE_NUMBER`. |
-| TC10 (voice) fails | Background noise was picked up as speech. Run it in a quiet room. |
 | Videos are missing | `RECORD_DISABLED=1` was set, or the phone blocks screen recording (OPPO / ColorOS). |
 | Tests stop with the phone locked | Unlock the phone. Keep it unlocked and on charge during runs. |
