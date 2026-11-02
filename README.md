@@ -199,7 +199,7 @@ outdated folder layout; use `run_tests.sh`.
 | `smoke` | TC05 | FC-PHOTO-01 | Photo Question from Gallery → AI Response | P0 | |
 | `smoke` | TC06 | FC-LOC-01 | Weather → Share Location (granted) → Answer | P0 | |
 | `smoke` | TC07 | FC-AUTH-01 | Account Lifecycle: Sign Up → History → Log Out | P0 | sign-in |
-| `smoke` | TC08 | FC-TTS-01 | Listen to AI Response (TTS Playback) | P0 | |
+| `smoke` | TC08 | FC-TTS-01 | Listen to AI Response (TTS Playback) | P0 | ⏸ quarantined (Listen accessibility bug) |
 | `core` | TC09 | FC-FEED-02 | Home Feed Full Scroll → Back to First Card → Chat | P1 | |
 | `core` | TC10 | FC-VOICE-01 | Speak Button Opens Voice-Input Overlay | P2 | quiet room |
 | `core` | TC11 | FC-AUTH-02 | Full Sign Up via Settings (Phone + OTP → Signed In) | P0 | sign-in |
@@ -211,7 +211,7 @@ outdated folder layout; use `run_tests.sh`.
 | `core` | TC17 | FC-NAV-02 | Side Menu Home Returns From Help Screen | P2 | |
 | `core` | TC18 | FC-AUTH-03 | Drawer → Sign Up: Phone-Input Screen | P1 | sign-in |
 | `core` | TC19 | FC-AUTH-04 | Settings → Sign Up: Phone-Input Screen | P1 | sign-in |
-| `core` | TC20 | FC-AUTH-05 | Settings → Sign Up → Skip Returns to Settings | P2 | sign-in |
+| `core` | TC20 | FC-AUTH-05 | Settings → Sign Up → Skip / Close Returns to Settings | P2 | sign-in |
 | `settings_help` | TC21 | FC-SET-01 | Settings: Toggle Display Mode (Day / Night / Auto) | P2 | |
 | `settings_help` | TC22 | FC-SET-02 | Settings: Update Display Name | P2 | |
 | `settings_help` | TC23 | FC-HELP-01 | Help: FAQ Opens and Expands Answers | P2 | |

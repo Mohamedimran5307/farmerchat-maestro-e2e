@@ -4,158 +4,99 @@ appId: ${APP_ID}
 # TAP THE FIRST CHIP OF AN AGENTIC CLARIFICATION CARD
 # ============================================================
 # Called by wait_for_answer.yaml when a clarification is on screen.
-#   - Photo card ("Add one clear photo": Take a photo / Choose from
-#     gallery / Continue without photo): the ONE exception to "first chip" —
-#     always the 3rd chip, "Continue without one/photo" (agreed rule: tests
-#     stay text-only here).
-#   - Location card ("Share location"): first chip is "Give permission"
-#     → also grants the Android location prompt that follows.
-#   - Other cards ("Choose one" / "Which crop …?" … footer "Don't see
-#     your option? Type or say it."): first chip = the option numbered 1.
-# wait_for_answer.yaml doesn't scroll while the agent is thinking, so a
-# card arrives in view top-first; option 1 is found below the card's title
-# ("Choose one"), which keeps an older answer's suggestion "1" from being
-# picked. Cards without a title fall back to the footer anchor.
-# No testTags yet (requested: chat_clarification_option_0).
+#   - Photo card (chat_clarification_card_photo): the ONE exception to
+#     "first chip" — always "Continue without photo"
+#     (chat_clarification_option_skip).
+#   - Location card (chat_clarification_card_location): first chip is
+#     "Give permission" → also grants the Android location prompt.
+#   - Any other card (crop, stage, pest …): chat_clarification_option_0;
+#     a confirmation card that comes BEFORE the answer ("Please Confirm",
+#     seen 2 Nov): chat_confirmation_option_0.
+# Answered cards stay in the chat with the same tags, but the chosen
+# option shows a tick instead of its number. The tests always answer
+# option 0 (or skip on the photo card), so the pending card is the one
+# whose option still holds its number — "1" in option 0, a digit in the
+# skip option. That also keeps an older answer's suggestion "1" out.
+# Output: output.chipDone = true when a chip was tapped.
 # ============================================================
 
 - evalScript: ${output.chipDone = false}
+- evalScript: ${output.photoCard = false}
 
-# ── Photo card → always the "continue without a photo" option (3rd chip) ──
-# Detected by the card's title. The option's wording has changed between
-# builds ("Continue without one" → "Continue without photo"), so match
-# either; if neither is there, tap the 3rd chip by its tag.
+# ── Photo card → "Continue without photo" ──
 - runFlow:
     when:
-      visible: "Add one clear photo.*"
+      visible:
+        id: "chat_clarification_card_photo"
     commands:
-      - evalScript: ${output.photoSkipped = false}
+      - evalScript: ${output.photoCard = true}
       - runFlow:
           when:
             visible:
-              text: "Continue without (one|photo)"
-              below:
-                text: "Add one clear photo.*"
+              id: "chat_clarification_option_skip"
+              containsDescendants:
+                - text: "[0-9]"
           commands:
             - tapOn:
-                text: "Continue without (one|photo)"
-                below:
-                  text: "Add one clear photo.*"
-            - evalScript: ${output.photoSkipped = true}
+                id: "chat_clarification_option_skip"
+                containsDescendants:
+                  - text: "[0-9]"
+            - evalScript: ${output.chipDone = true}
+            - evalScript: ${console.log('[AGENTIC] clarification answered - photo, continue without a photo')}
+
+# ── Location card → option 0 ("Give permission") + the system prompt ──
+- runFlow:
+    when:
+      true: ${!output.chipDone && !output.photoCard}
+      visible:
+        id: "chat_clarification_card_location"
+    commands:
       - runFlow:
           when:
-            true: ${!output.photoSkipped}
+            visible:
+              id: "chat_clarification_option_0"
+              containsDescendants:
+                - text: "1"
           commands:
             - tapOn:
-                id: "chat_clarification_option_2"
-                below:
-                  text: "Add one clear photo.*"
-            - evalScript: ${console.log('[NOTE] Photo card skip option not matched by text - tapped the 3rd chip (chat_clarification_option_2)')}
-      - evalScript: ${output.chipDone = true}
-      - evalScript: ${console.log('[AGENTIC] clarification answered - photo, continue without a photo')}
+                id: "chat_clarification_option_0"
+                containsDescendants:
+                  - text: "1"
+            - runFlow: grant_runtime_permission.yaml
+            - evalScript: ${output.chipDone = true}
+            - evalScript: ${console.log('[AGENTIC] clarification answered - location, first chip')}
 
-# ── Location card ──
+# ── Any other card → option 0 ──
 - runFlow:
     when:
-      true: ${!output.chipDone}
-      visible: "Share location"
+      true: ${!output.chipDone && !output.photoCard}
+      visible:
+        id: "chat_(clarification|confirmation)_option_0"
+        containsDescendants:
+          - text: "1"
     commands:
-      - scrollUntilVisible:
-          centerElement: false
-          element:
-            text: "1"
-            below:
-              text: "Share location"
-          direction: UP
-          timeout: 6000
-          optional: true
-      - tapOn:
-          text: "1"
-          below:
-            text: "Share location"
-      - runFlow: grant_runtime_permission.yaml
-      - evalScript: ${output.chipDone = true}
-      - evalScript: ${console.log('[AGENTIC] clarification answered - location, first chip')}
-
-# ── Cards with a "Choose one" title (crop, stage, pest …) ──
-# wait_for_answer doesn't scroll while the agent is thinking, so the card
-# lands in view top-first: title + option 1 are on screen; the footer may
-# not be. Anchor to the title. Answered cards stay in the chat, but their
-# chosen option shows a tick instead of "1", so the first "1" below a
-# "Choose one" is always the current card's option 1.
-- runFlow:
-    when:
-      true: ${!output.chipDone}
-      visible: "Choose one"
-    commands:
-      # No-op when option 1 is already visible (the usual case).
-      - scrollUntilVisible:
-          centerElement: false
-          element:
-            text: "1"
-            below:
-              text: "Choose one"
-          direction: DOWN
-          timeout: 4000
-          speed: 40
-          optional: true
-      # Option 1's label: right of "1" and above "2" in this card (the
-      # hierarchy also holds hidden text, e.g. "Overview", that a looser
-      # selector picks up first).
+      # Its label is only logged (the accessibility bug can drop a chip's
+      # text, so read it only when it's there).
       - evalScript: ${output.chipLabel = ''}
       - runFlow:
           when:
             visible:
-              text: "2"
-              below:
-                text: "Choose one"
+              text: "(?!1$).{2,}"
+              childOf:
+                id: "chat_(clarification|confirmation)_option_0"
+                containsDescendants:
+                  - text: "1"
           commands:
             - copyTextFrom:
-                text: "(?!Listen$|Share$).{2,}"
-                rightOf:
-                  text: "1"
-                  below:
-                    text: "Choose one"
-                below:
-                  text: "Choose one"
-                above:
-                  text: "2"
-                  below:
-                    text: "Choose one"
+                text: "(?!1$).{2,}"
+                childOf:
+                  id: "chat_(clarification|confirmation)_option_0"
+                  containsDescendants:
+                    - text: "1"
             - evalScript: ${output.chipLabel = maestro.copiedText || ''}
-      - runFlow:
-          when:
-            true: ${output.chipLabel == ''}
-          commands:
-            - evalScript: ${console.log('[NOTE] Chip label not captured - echo check skipped')}
       - tapOn:
-          text: "1"
-          below:
-            text: "Choose one"
+          id: "chat_(clarification|confirmation)_option_0"
+          containsDescendants:
+            - text: "1"
       - evalScript: ${output.chipDone = true}
-      - evalScript: ${console.log('[AGENTIC] chip tapped - ' + output.chipLabel)}
-
-# ── Fallback: a card without a "Choose one" title, found by its footer.
-#    Option 1 is the first "1" above the footer (scroll up to it). ──
-- runFlow:
-    when:
-      true: ${!output.chipDone}
-      visible: "Don't see your option.*"
-    commands:
-      - scrollUntilVisible:
-          centerElement: false
-          element:
-            text: "1"
-            above:
-              text: "Don't see your option.*"
-          direction: UP
-          timeout: 6000
-          speed: 40
-          optional: true
-      - tapOn:
-          text: "1"
-          above:
-            text: "Don't see your option.*"
-      - evalScript: ${output.chipDone = true}
-      - evalScript: ${console.log('[NOTE] Clarification card without a Choose one title - first chip tapped, label/echo not checked')}
-- evalScript: ${console.log('[AGENTIC] clarification answered - first chip')}
+      - evalScript: ${console.log('[AGENTIC] clarification answered - first chip - ' + output.chipLabel)}

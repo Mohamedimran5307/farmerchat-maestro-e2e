@@ -52,12 +52,12 @@ onFlowComplete:
                 id: "chat_retry_btn"
       - extendedWaitUntil:
           visible:
-            text: "Getting your .*"
+            id: "chat_loading"
           timeout: 4000
           optional: true
       - extendedWaitUntil:
           notVisible:
-            text: "Getting your .*"
+            id: "chat_loading"
           timeout: 90000
       - assertNotVisible:
           id: "chat_retry_btn"

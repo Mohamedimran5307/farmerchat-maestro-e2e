@@ -32,20 +32,38 @@ tags:
       id: "settings_screen"
     timeout: 5000
 
-# Cycle through the three appearance modes and verify each label.
-# The label strings carry over from the old APK and need a live-device
-# verification after first run.
+# Cycle through the three appearance modes: the tapped one becomes the
+# selected option (checked) and the previous one is released. Ends on
+# Auto, the default.
 - tapOn:
     id: "settings_btn_appearance_day"
 - assertVisible:
-    text: ".*always in light mode.*"
+    id: "settings_btn_appearance_day"
+    checked: true
+    label: "Day is selected"
+- assertNotVisible:
+    id: "settings_btn_appearance_auto"
+    checked: true
+    label: "Auto is no longer selected"
 
 - tapOn:
     id: "settings_btn_appearance_night"
 - assertVisible:
-    text: ".*always in dark mode.*"
+    id: "settings_btn_appearance_night"
+    checked: true
+    label: "Night is selected"
+- assertNotVisible:
+    id: "settings_btn_appearance_day"
+    checked: true
+    label: "Day is no longer selected"
 
 - tapOn:
     id: "settings_btn_appearance_auto"
 - assertVisible:
-    text: ".*adjusts with your phone settings.*"
+    id: "settings_btn_appearance_auto"
+    checked: true
+    label: "Auto is selected"
+- assertNotVisible:
+    id: "settings_btn_appearance_night"
+    checked: true
+    label: "Night is no longer selected"

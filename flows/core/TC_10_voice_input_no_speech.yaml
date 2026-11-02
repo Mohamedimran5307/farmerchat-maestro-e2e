@@ -16,7 +16,7 @@ tags:
 # Voice-input overlay appears in its listening state.
 - extendedWaitUntil:
     visible:
-      text: "Listening..."
+      id: "chat_voice_input_listening"
     timeout: 5000
 
 # Send without speaking: the app can't transcribe anything and offers

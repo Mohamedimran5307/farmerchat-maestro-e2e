@@ -15,11 +15,11 @@ appId: ${APP_ID}
 #                           each extra agent turn costs time and saves
 #                           data to the account.
 #
-# Agentic builds (4.1.7+) may first ask a clarification (numbered chips:
-# location card "Share location", or "Choose one" … "Don't see your
-# option? Type or say it.") and may end with a confirmation card (save
-# crop / gender). Rule: always tap the FIRST chip — except the photo card,
-# where it's the 3rd chip ("Continue without one/photo").
+# Agentic builds (4.1.7+) may first ask a clarification (a card of
+# numbered chips: chat_clarification_card, _option_<n>) and may end with a
+# confirmation card (save crop / gender). Rule: always tap the FIRST chip
+# — except the photo card, where it's "Continue without photo"
+# (chat_clarification_option_skip). See tap_first_clarification_chip.yaml.
 #
 # Functional checks only (what the AI says is covered by the evals
 # project). Failures: the answer completed (action row / suggestions),
@@ -32,19 +32,24 @@ appId: ${APP_ID}
 #
 # Speed: every Maestro check on an element that isn't there costs ~3.5s
 # (the app's animations never let the screen settle), so checks are kept
-# to a minimum. Chips have no testTags yet (requested); text is English.
+# to a minimum.
 # ============================================================
 
 - evalScript: ${output.clarifications = 0}
 
-# ── Watch first, scroll later. While the app shows "Getting your
-#    answer… / location…" nothing is scrolled: the screen stays still and
+# ── Watch first, scroll later. While the app shows its loader
+#    (chat_loading, "Getting your answer…") nothing is scrolled: the screen stays still and
 #    whatever arrives (a clarification card or the answer) lands in view —
 #    the app doesn't follow the answer down, it shows it from its top.
 #    Only once the loader is gone and no chip card is showing do we scroll
 #    DOWN to the end of the answer (action row / suggestions). If the
-#    loader is never seen (other language, older build) the loop falls back
-#    to scrolling, so it still terminates. ──
+#    loader is never seen (it came and went between checks) the loop falls
+#    back to scrolling, so it still terminates.
+#    A pending card is found by its option still holding its number: an
+#    answered card keeps its tags but shows a tick on the chosen option.
+#    Before the answer a confirmation card ("Please Confirm": step-by-step
+#    plan / short overview, seen 2 Nov) blocks it too, so it's answered
+#    like a clarification. ──
 - repeat:
     while:
       notVisible:
@@ -54,22 +59,24 @@ appId: ${APP_ID}
       - evalScript: ${output.chipThisPass = false}
       - extendedWaitUntil:
           visible:
-            text: "Getting your .*"
+            id: "chat_loading"
           timeout: 4000
           optional: true
       - extendedWaitUntil:
           notVisible:
-            text: "Getting your .*"
+            id: "chat_loading"
           timeout: 90000
           optional: true
       - runFlow:
           when:
             visible:
-              text: "Choose one|Don't see your option.*|Share location|Add one clear photo.*"
+              id: "chat_(clarification|confirmation)_option_(0|skip)"
+              containsDescendants:
+                - text: "[0-9]"
           commands:
             - runFlow: tap_first_clarification_chip.yaml
-            # Only a tapped chip counts (an answered card's echo can still
-            # match the text above → then scroll on, don't loop on it).
+            # Only a tapped chip counts (an answered photo card still has a
+            # numbered option 0 → then scroll on, don't loop on it).
             - evalScript: ${output.chipThisPass = output.chipDone == true}
             - evalScript: "${output.clarifications = output.clarifications + (output.chipThisPass ? 1 : 0)}"
       - runFlow:
@@ -93,7 +100,11 @@ appId: ${APP_ID}
     id: "chat_retry_btn"
     label: "Answer is not the inline error"
 # The backend's failure reply looks like a normal answer (Share/Listen row,
-# no Retry button), so it is caught by its wording.
+# no Retry button). The 2 Nov build tags it chat_ai_message_error; its
+# wording is still checked until that tag has been seen on a failure reply.
+- assertNotVisible:
+    id: "chat_ai_message_error"
+    label: "Answer is not the failure reply (tag)"
 - assertNotVisible:
     text: "(?is).*(had a problem just now|ask your question again).*"
     childOf:
@@ -124,7 +135,7 @@ appId: ${APP_ID}
 #    check had run; a symptom card followed a confirmation). Keep handling
 #    whatever arrives at the end of the chat until the follow-up questions
 #    show (up to 4 rounds): tap its first chip (photo card: "Continue
-#    without one"), check the choice is echoed, wait for the agent's next
+#    without photo"), wait for the agent's next
 #    turn. Cards are looked for BELOW the answer's Share row, so answered
 #    cards from before the answer don't count. What a card says is not
 #    checked (AI content — covered by the evals project). ──
@@ -148,11 +159,13 @@ appId: ${APP_ID}
                 timeout: 8000
                 optional: true
             - evalScript: ${output.lateTapped = false}
-            # A clarification card (title, footer, location or photo card).
+            # A pending clarification card (an option still numbered).
             - runFlow:
                 when:
                   visible:
-                    text: "Choose one|Don't see your option.*|Share location|Add one clear photo.*"
+                    id: "chat_clarification_option_(0|skip)"
+                    containsDescendants:
+                      - text: "[0-9]"
                     below:
                       id: "chat_share_btn"
                 commands:
@@ -195,11 +208,11 @@ appId: ${APP_ID}
                 commands:
                   - extendedWaitUntil:
                       visible:
-                        text: "Getting your .*"
+                        id: "chat_loading"
                       timeout: 4000
                       optional: true
                   - extendedWaitUntil:
                       notVisible:
-                        text: "Getting your .*"
+                        id: "chat_loading"
                       timeout: 90000
                       label: "Agent finished its turn after the card"

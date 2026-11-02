@@ -1,13 +1,12 @@
 appId: ${APP_ID}
-name: "TC20 - Settings → Sign Up → Skip Returns to Settings"
+name: "TC20 - Settings → Sign Up → Skip / Close Returns to Settings"
 # id: FC-AUTH-05
 # priority: P2
 # requires: PHONE_NUMBER,OTP_CODE
-# description: Skipping sign-up from Settings returns to Settings.
-# TODO: The "Skip" CTA on the account-benefits screen doesn't have a
-# confirmed testTag yet. Currently using a text:"Skip" matcher; once
-# the new APK is inspected, replace with an id like
-# account_benefits_btn_skip if available.
+# description: Leaving sign-up from Settings without signing up returns to Settings.
+# On the 2 Nov build Settings → Sign Up opens either the account-benefits
+# screen (left with Skip) or, on some visits, the phone-number screen
+# directly (left with its X). Both must land back on Settings.
 tags:
   - settings
   - auth
@@ -42,16 +41,30 @@ tags:
 - tapOn:
     id: "settings_btn_signup"
 
-# Wait for the account-benefits screen, then tap Skip.
+# Benefits screen → Skip; phone-number screen → X.
 - extendedWaitUntil:
     visible:
-      id: "account_benefits_btn_signup"
+      id: "account_benefits_btn_signup|auth_screen"
     timeout: 10000
-- tapOn: "Skip"
+- runFlow:
+    when:
+      visible:
+        id: "account_benefits_btn_skip"
+    commands:
+      - tapOn:
+          id: "account_benefits_btn_skip"
+- runFlow:
+    when:
+      visible:
+        id: "auth_screen"
+    commands:
+      - tapOn:
+          id: "appbar_default_left_btn"
 
 - extendedWaitUntil:
     visible:
       id: "settings_screen"
     timeout: 5000
 - assertVisible:
-    id: "settings_screen"
+    id: "settings_btn_signup"
+    label: "Still signed out (Sign Up still offered)"

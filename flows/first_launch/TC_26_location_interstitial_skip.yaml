@@ -28,7 +28,7 @@ tags:
 
 # ── Skip: straight to the chat, no system prompt ──
 - tapOn:
-    id: "appbar_default_right_btn"
+    id: "location_interstitial_skip_btn"
     label: "Tap Skip"
 - extendedWaitUntil:
     visible:

@@ -78,7 +78,7 @@ numbered chips (location, photo, crop, growth stage), and after answering it may
 confirmation chips (save crop to profile, gender) instead of the "You can also ask" suggestions.
 Non-agentic builds answer directly and end with suggestions. **Every test must pass on both**:
 
-- Send questions and wait with `helpers/wait_for_answer.yaml`. Rule: **always tap the first chip** — except the photo clarification ("Add one clear photo"), where it's always the **3rd chip** ("Continue without one" / "Continue without photo" by text, else `chat_clarification_option_2`) —
+- Send questions and wait with `helpers/wait_for_answer.yaml`. Rule: **always tap the first chip** — except the photo clarification (`chat_clarification_card_photo`), where it's always "Continue without photo" (`chat_clarification_option_skip`) —
   for a clarification before the answer (the location card's first chip is "Give permission", and
   the Android prompt is then granted). Cards **after** the answer (a confirmation such as save crop /
   gender, found by `chat_confirmation_option_0`, or a late clarification) are handled only when the
@@ -106,10 +106,10 @@ Non-agentic builds answer directly and end with suggestions. **Every test must p
   failure). Other chat tests don't check them (decision 30 Oct 2026).
 - Don't require suggestions. A follow-up runs only when the answer offers suggestions (tap the
   first one); otherwise it's skipped, never typed.
-- **Watch first, scroll later.** While the app shows "Getting your answer… / location…", don't
+- **Watch first, scroll later.** While the app shows its loader (`chat_loading`), don't
   scroll: whatever arrives (a clarification card or the answer) lands in view top-first, because the
-  app doesn't follow the answer down. Act on a card where it lands (option 1 below its "Choose one"
-  title); scroll down only once a finished answer is there, to reach its action row / suggestions.
+  app doesn't follow the answer down. Act on a card where it lands (`chat_clarification_option_0`
+  that still shows "1": answered cards keep their tags, with a tick on the chosen option); scroll down only once a finished answer is there, to reach its action row / suggestions.
 - Keep conditional checks to a minimum: each check on an absent element costs about 3.5s, because
   FarmerChat's animations never let the screen settle.
 - The report logs per answer how many clarifications were answered, and both the answer-only time

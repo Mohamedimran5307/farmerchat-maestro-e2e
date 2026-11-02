@@ -140,7 +140,7 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   which varies by language. Use the Maestro MCP tools (`list_devices` → `inspect_screen` → `run`)
   to validate against a running emulator.
 - AI answers: after sending (or opening a card/weather chat) use `helpers/wait_for_answer.yaml`. It
-  watches the "Getting your …" loader **without scrolling** (whatever arrives — a chip card or the
+  watches the loader (`chat_loading`, "Getting your …") **without scrolling** (whatever arrives — a chip card or the
   answer — lands in view top-first), taps chips where they land, and scrolls down only once a
   finished answer is there. It completes on the Share/Listen row or the suggestions, and fails on the
   inline error (`chat_retry_btn`), on the "Sorry, I had a problem just now" failure reply (it looks
@@ -173,8 +173,10 @@ show confirmation chips after it (save crop, gender) instead of suggestions. `AG
 `config/env.yaml` marks an agentic APK (enables FC-AGENT-01, which *requires* a clarification);
 set it false for a non-agentic APK. Always wait for
 answers with `helpers/wait_for_answer.yaml` (handles both build types; taps the first chip of any
-clarification before the answer — except the photo card, where it's the 3rd chip, "Continue
-without one/photo" (by text, else `chat_clarification_option_2`); the agent's turns are awaited
+clarification before the answer (`chat_clarification_option_0`) — except the photo card
+(`chat_clarification_card_photo`), where it's "Continue without photo"
+(`chat_clarification_option_skip`). A pending card is the one whose option still shows its
+number: answered cards keep their tags but show a tick on the chosen option. The agent's turns are awaited
 between taps, nothing is asserted while it's working). Only with `output.handleFollowUps` (TC03)
 does it also answer a confirmation after the answer (first chip, found by
 `chat_confirmation_option_0`) and wait for the suggestions, which come after any confirmation card
@@ -199,8 +201,9 @@ at the end of the chat; never type a follow-up. Each Maestro check on an absent 
 - `copyTextFrom` / `below` / `above` return the **first match in hierarchy order**, not the nearest.
 - The answer's Share/Listen row intermittently drops out of the accessibility tree (Listen missing,
   Share shrunk) — an app bug still present in 4.1.7, seen when the chat updates after the answer
-  (confirmation cards, more turns). FC-TTS-01 (Listen) was quarantined for it; since tests stop at
-  the answer (30 Oct) it passed 3/3 and runs again — re-quarantine with evidence if it recurs.
+  (confirmation cards, more turns). FC-TTS-01 (Listen) was quarantined for it, ran again after
+  passing 3/3 on 30 Oct, and is **quarantined again (2 Nov build)**: the Listen node collapses to
+  34 px even with no chat update after the answer, and it passed 1 of 3.
   The same bug also collapses suggestion rows, drops the Listen state tags and, during loading,
   the `chat_user_message` tag (details in `TESTTAG_REQUESTS_CRITICAL.md`).
 - Some devices (e.g. Vivo) open the **Files** picker for the gallery, others the Photo picker; FC-PHOTO-01

@@ -50,7 +50,7 @@ tags:
 - evalScript: ${output.answerLabel = 'weather_answer'}
 - runFlow: ../../helpers/wait_for_answer.yaml
 - assertNotVisible:
-    text: "Share location"
+    id: "chat_clarification_card_location"
     label: "Chat didn't ask for location after it was granted"
 - scrollUntilVisible:
     centerElement: false
