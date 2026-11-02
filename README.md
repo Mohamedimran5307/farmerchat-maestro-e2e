@@ -120,7 +120,7 @@ tags can be mixed, separated by commas.
 | `RECORD_DISABLED=1` | Don't record videos |
 
 ```bash
-RUN_QUARANTINED=1 SKIP_DRIVE_UPLOAD=1 MAESTRO_DEVICE=b0dab239 ./run_tests.sh "Imran" TC27
+RUN_QUARANTINED=1 SKIP_DRIVE_UPLOAD=1 MAESTRO_DEVICE=b0dab239 ./run_tests.sh "Imran" @smoke
 ```
 
 ### Running one flow straight with Maestro (debugging only)
@@ -218,9 +218,9 @@ outdated folder layout; use `run_tests.sh`.
 | `settings_help` | TC24 | FC-HELP-02 | Help: Open Terms of Use | P2 | |
 | `settings_help` | TC25 | FC-HELP-03 | Help: Open Privacy Policy | P2 | |
 | `first_launch` | TC26 | FC-LOC-02 | Weather: Skip Share Location → Continue Without Location → Answer | P2 | |
-| `first_launch` | TC27 | FC-LEGAL-01 | First-Launch: Open Terms of Use from Language Screen | P2 | ⏸ quarantined (missing tags) |
-| `first_launch` | TC28 | FC-LEGAL-02 | First-Launch: Privacy Policy Link in Language-Screen Legal Text | P2 | ⏸ quarantined (missing tags) |
-| `first_launch` | TC29 | FC-LEGAL-03 | First-Launch: Both Legal Links in Language-Screen Legal Text | P2 | ⏸ quarantined (missing tags) |
+| `first_launch` | TC27 | FC-LEGAL-01 | First-Launch: Open Terms of Use from Language Screen | P2 | |
+| `first_launch` | TC28 | FC-LEGAL-02 | First-Launch: Open Privacy Policy from Language Screen | P2 | |
+| `first_launch` | TC29 | FC-LEGAL-03 | First-Launch: Open and Close Both Legal Documents | P2 | |
 | `first_launch` | TC30 | FC-LOC-03 | Location Permission Persists After Grant (across a restart) | P1 | |
 | `first_launch` | TC31 | FC-LOC-04 | Location Denied → Continue Without Location → Answer | P1 | |
 | `offline` | TC32 | FC-ERR-01 | Returning User Cold Starts Offline → Cached Home | P2 | |

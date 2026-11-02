@@ -2,15 +2,10 @@ appId: ${APP_ID}
 name: "TC27 - First-Launch: Open Terms of Use from Language Screen"
 # id: FC-LEGAL-01
 # priority: P2
-# quarantine: Blocked by missing tags (4.1.7) — the Terms / Privacy links on the language screen are not separate tagged elements (language_terms_btn / language_privacy_btn don't exist), so they can't be tapped. Requested in TESTTAG_REQUESTS_CRITICAL.md (row 8). Remove once the tags ship.
 # description: Language screen's Terms of Use link opens the document.
-# Note: on this APK build the language_legal_text + Terms of Use /
-# Privacy Policy links only become visible AFTER a language is
-# selected from language_item_${LANGUAGE_CODE}. The original
-# (old-APK) flow could tap the Terms link directly on the language
-# screen — that no longer works. Doesn't run complete_onboarding —
-# the runner's setup_test already wipes app state, so launchApp
-# lands on the first-launch language screen directly.
+# The legal links render after a language is picked. The document page
+# has no testTags yet (legal_document_screen / _title requested), so its
+# title is still matched by text.
 tags:
   - onboarding
   - legal
@@ -27,42 +22,32 @@ tags:
     commands:
       - tapOn: "Try again"
 
-# Wait for the language screen to render.
 - extendedWaitUntil:
     visible:
       id: "language_screen"
     timeout: 30000
 
-# Pick the configured language so the inline legal-text block (with the
-# Terms of Use link) renders. Wrapped in runFlow when: language_screen to
-# stay a no-op on builds where this step doesn't apply.
-- runFlow:
-    when:
-      visible:
-        id: "language_screen"
-    commands:
-      - extendedWaitUntil:
-          visible:
-            id: "language_item_${LANGUAGE_CODE}"
-          timeout: 5000
-      - tapOn:
-          id: "language_item_${LANGUAGE_CODE}"
+# Pick the configured language so the legal text renders.
+- extendedWaitUntil:
+    visible:
+      id: "language_item_${LANGUAGE_CODE}"
+    timeout: 5000
+- tapOn:
+    id: "language_item_${LANGUAGE_CODE}"
 
-# Tap the "Terms of Use" link once it animates in (the legal-text block
-# appears after language selection). text-matcher used because the
-# language_terms_link testTag from the old APK doesn't exist here.
+- extendedWaitUntil:
+    visible:
+      id: "language_terms_btn"
+    timeout: 10000
 - assertVisible:
     id: "language_legal_text"
-- assertVisible:
-    id: "language_terms_btn"
 - tapOn:
     id: "language_terms_btn"
 
-# Verify the Terms document opens. "Terms of Use" stays visible because
-# it's typically also the title of the opened document.
+# The Terms document opens.
 - extendedWaitUntil:
     visible:
       text: "Terms of Use"
-    timeout: 10000
-- assertVisible:
-    text: "Terms of Use"
+    timeout: 15000
+- assertNotVisible:
+    id: "language_screen"
