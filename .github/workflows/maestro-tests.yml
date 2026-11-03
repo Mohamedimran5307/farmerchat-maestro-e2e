@@ -359,3 +359,20 @@ jobs:
           # A push made with the workflow token may not start a Pages build.
           gh api -X POST "repos/${{ github.repository }}/pages/builds" >/dev/null || true
           echo "Report: https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/runs/${{ github.run_number }}-${{ needs.maestro-tests.outputs.suite || 'unknown' }}/" >> "$GITHUB_STEP_SUMMARY"
+
+      # Posts the result to the team's Google Chat space. The webhook URL is
+      # the repository secret GCHAT_WEBHOOK_URL (never in this file: the repo
+      # is public); without it the step does nothing.
+      - name: Post the result to Google Chat
+        if: always()
+        env:
+          GCHAT_WEBHOOK_URL: ${{ secrets.GCHAT_WEBHOOK_URL }}
+          RUN: ${{ github.run_number }}
+          SUITE: ${{ needs.maestro-tests.outputs.suite || 'unknown' }}
+          BRANCH: ${{ github.ref_name }}
+          TRIGGER: ${{ github.event_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SITE: site
+        run: |
+          export REPORT_URL="https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/runs/$RUN-$SUITE/"
+          python3 repo/.github/scripts/notify_gchat.py

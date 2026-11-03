@@ -134,6 +134,9 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   does it: videos of flows that type the test phone number / OTP (found from `full_signup.yaml` /
   `inputText: ${PHONE_NUMBER|NEW_PHONE_NUMBER|OTP_CODE}`) and all debug logs are never published;
   videos are kept for the newest runs (10 runs / 500 MB); gh-pages is force-pushed as one commit.
+  Then `.github/scripts/notify_gchat.py` posts the result and the report link to the team's Google
+  Chat space through the webhook in the repo secret `GCHAT_WEBHOOK_URL` (never put the URL in a
+  file — the repo is public; without the secret the step does nothing).
   The Post Summary step
   parses the `reports/FarmerChat_*_Test_Report_*.json` summary block for the pass/fail counts.
 
