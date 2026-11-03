@@ -1,6 +1,0 @@
-appId: ${APP_ID}
----
-- extendedWaitUntil:
-    visible:
-      id: "home_screen"
-    timeout: 15000

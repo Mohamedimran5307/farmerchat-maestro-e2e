@@ -17,12 +17,3 @@ reports/
 *.log
 *.tmp
 *.mp4
-
-# DeviceFarm per-machine config
-device-farm/.config/
-
-# DeviceFarm local reports
-device-farm/reports/
-
-# DeviceFarm recordings in results
-results/**/recordings/

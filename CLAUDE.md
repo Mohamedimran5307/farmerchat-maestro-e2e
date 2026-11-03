@@ -26,8 +26,6 @@ YAML flows, reusable sub-flows, and bash runners that orchestrate Maestro + adb 
   `run_tests.sh` lists these folders in `BATCH_DIRS` and globs `TC_[0-9]*_*.yaml` in each, so adding a
   flow to an existing batch needs no runner change. Keep numbers unique and gapless across batches
   (renumber later batches if you insert or delete one). Every flow also carries its batch name as a tag.
-- **`flows/onboarding/`** — legacy, *not* picked up by the runners. Ignore unless explicitly asked.
-  (It is not a batch folder; the first-launch batch is `flows/first_launch/`.)
 - Filename `TC_05_…` maps to CLI/report id `TC05` (underscore dropped) — **display order only**.
   Each flow also has a **permanent id** (`# id: FC-<AREA>-NN`) that never changes when tests are
   renumbered or moved; reports show it and the runner accepts it as a filter. Never reuse one.
@@ -110,19 +108,13 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   -e APP_ID=org.digitalgreen.farmer.chat -e LANGUAGE_CODE=en -e USER_NAME="Test Farmer"
 ```
 
-### Auxiliary scripts (`scripts/`)
+### Notes
 
-- `scripts/run_failed.sh` — re-run only the TCs that failed in the last run.
 - **Offline-network tests are self-contained.** TC_32/TC_33 (global no-internet error + retry),
   TC_34 (chat send offline → inline error + retry), and TC_35 (chat history offline → error + retry)
   each toggle the radio in-flow via `setAirplaneMode: enabled/disabled` and drive their own
   recovery — no manual network toggling and no required run order. (These were previously
   `_setup`/`_assert`/`_recovery` triplets; now consolidated into one flow apiece.)
-- **Note on `device-farm/`:** it is a self-contained physical-device harness with its **own** copies
-  of `run_tests.sh` / `tc_metadata.sh` / `generate_report.sh` under `device-farm/scripts/`. Its docs
-  still describe an older 40-TC mapping — verify against the actual `flows/<batch>/` folders, not those.
-- `scripts/run_failed.sh`, `generate_report.sh` and `generate_report_only.sh` hardcode an even older
-  layout (`flows/chat/…`, `flows/home/NN_…`) and are stale; `run_tests.sh` is the one to use.
 
 ## App binary & CI
 

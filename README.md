@@ -163,8 +163,7 @@ maestro --device <serial> test flows/core/TC_17_drawer_home_navigation.yaml -e A
 │   ├── core/                 # TC09–TC20
 │   ├── settings_help/        # TC21–TC25
 │   ├── first_launch/         # TC26–TC31
-│   ├── offline/              # TC32–TC35
-│   └── onboarding/           # Legacy, not run
+│   └── offline/              # TC32–TC35
 ├── helpers/                  # Reusable sub-flows (runFlow: ../../helpers/<name>.yaml)
 │   ├── complete_onboarding.yaml   # Launch → language screen → home (safe to rerun)
 │   ├── wait_for_answer.yaml       # Waits for an AI answer, taps clarification chips, checks it completed
@@ -178,11 +177,8 @@ maestro --device <serial> test flows/core/TC_17_drawer_home_navigation.yaml -e A
 ├── CLAUDE.md                 # Detailed conventions and known app pitfalls
 ├── TESTTAG_REQUESTS_CRITICAL.md   # Missing test tags and app bugs for the developer (not committed)
 ├── app.apk                   # App under test (git LFS)
-├── device-farm/              # Separate physical-device harness (older; its docs list 40 tests)
 └── reports/                  # Generated reports and videos (gitignored)
 ```
-The older scripts `generate_report.sh`, `generate_report_only.sh` and `scripts/run_failed.sh` use an
-outdated folder layout; use `run_tests.sh`.
 
 ---
 
