@@ -172,9 +172,15 @@ into it (or an emulator if none is attached).
 - **Every run's report is published** (any branch, any trigger) at
   **https://mohamedimran5307.github.io/farmerchat-maestro-e2e/**: one row per run, and each run keeps
   its own link (`…/runs/<run>-<suite>/`) to share. The link is also on the run's summary page.
-- The site is **public**, so it gets the HTML + JSON report only. Videos and debug logs (which
-  contain the test phone numbers) stay in the run's **Artifacts** on GitHub:
-  `FarmerChat-report-<n>` (HTML/JSON) and `FarmerChat-report-full-<n>` (with videos).
+- Each run's page is the same report as a local run, **with its videos playing**. The site is
+  **public**, so two things are left out:
+  - the videos of the 5 tests that type the test phone number (TC07, TC11, TC14, TC15, TC35); and
+  - all debug logs.
+
+  Both stay in the run's **Artifacts** on GitHub: `FarmerChat-report-<n>` (HTML/JSON) and
+  `FarmerChat-report-full-<n>` (everything).
+- Videos are kept for the most recent runs (up to 10 runs and 500 MB, since GitHub Pages allows
+  1 GB). Older runs keep their report page without the videos.
 - Sign-up tests use the repo secrets `PHONE_NUMBER`, `NEW_PHONE_NUMBER` and `OTP_CODE`.
 
 ---

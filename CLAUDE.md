@@ -128,10 +128,13 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   Suite per trigger: PR / push to `main` → `@smoke`; nightly at 02:00 IST (20:30 UTC, workflow
   file from `main`) → full regression; manual "Run workflow" → a chosen suite (smoke default) on any
   branch. One run at a time (shared `concurrency` group). It runs `./run_tests.sh "CI" <filter>`
-  with `SKIP_DRIVE_UPLOAD=1`. Every run (any branch/trigger) publishes its **HTML + JSON report
-  only** to the `gh-pages` branch as `runs/<run>-<suite>/`, with an index of all runs; Pages serves
-  that branch (public). Videos and debug logs stay in the artifacts: they contain the test phone
-  numbers / OTP, so never publish them. The Post Summary step
+  with `SKIP_DRIVE_UPLOAD=1`. Every run (any branch/trigger) publishes its report to the
+  `gh-pages` branch as `runs/<run>-<suite>/` (the runner's HTML with its videos, plus JSON) and
+  rebuilds an index of all runs; Pages serves that branch (public). `.github/scripts/publish_report.py`
+  does it: videos of flows that type the test phone number / OTP (found from `full_signup.yaml` /
+  `inputText: ${PHONE_NUMBER|NEW_PHONE_NUMBER|OTP_CODE}`) and all debug logs are never published;
+  videos are kept for the newest runs (10 runs / 500 MB); gh-pages is force-pushed as one commit.
+  The Post Summary step
   parses the `reports/FarmerChat_*_Test_Report_*.json` summary block for the pass/fail counts.
 
 ## When editing flows
