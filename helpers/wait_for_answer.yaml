@@ -49,7 +49,8 @@ appId: ${APP_ID}
 #    answered card keeps its tags but shows a tick on the chosen option.
 #    Before the answer a confirmation card ("Please Confirm": step-by-step
 #    plan / short overview, seen 2 Nov) blocks it too, so it's answered
-#    like a clarification. ──
+#    like a clarification. If the option's number has dropped out of the
+#    tree, the card's "Type or say it" footer marks it as still waiting. ──
 - repeat:
     while:
       notVisible:
@@ -79,6 +80,18 @@ appId: ${APP_ID}
             # numbered option 0 → then scroll on, don't loop on it).
             - evalScript: ${output.chipThisPass = output.chipDone == true}
             - evalScript: "${output.clarifications = output.clarifications + (output.chipThisPass ? 1 : 0)}"
+      # The option's number can drop out of the tree (accessibility bug,
+      # seen 3 Nov in CI) — then the pending card is found by its
+      # "Type or say it" footer, which only a card still waiting has.
+      - runFlow:
+          when:
+            true: ${!output.chipThisPass}
+            visible:
+              id: "chat_clarification_type_instead"
+          commands:
+            - runFlow: tap_first_clarification_chip.yaml
+            - evalScript: ${output.chipThisPass = output.chipDone == true}
+            - evalScript: "${output.clarifications = output.clarifications + (output.chipThisPass ? 1 : 0)}"
       - runFlow:
           when:
             true: ${!output.chipThisPass}
@@ -95,7 +108,7 @@ appId: ${APP_ID}
     id: "chat_share_btn|chat_suggested_questions"
     label: "Answer completed (action row or suggestions shown)"
 
-# ── Real answer: not the inline error, has text, within the SLA ──
+# ── Real answer: not the inline error, not the failure reply, has text ──
 - assertNotVisible:
     id: "chat_retry_btn"
     label: "Answer is not the inline error"

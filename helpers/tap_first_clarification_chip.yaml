@@ -100,3 +100,46 @@ appId: ${APP_ID}
             - text: "1"
       - evalScript: ${output.chipDone = true}
       - evalScript: ${console.log('[AGENTIC] clarification answered - first chip - ' + output.chipLabel)}
+
+# ── Fallback when the option's number has dropped out of the tree (the
+#    accessibility bug collapses it to a few px — seen 3 Nov in CI: a
+#    "Please Confirm" card stayed unanswered while the helper scrolled).
+#    A pending card also has the "Don't see your option? Type or say it."
+#    footer (chat_clarification_type_instead) as its child; it goes away
+#    once the card is answered, so it marks the card still waiting. ──
+- runFlow:
+    when:
+      true: ${!output.chipDone}
+      visible:
+        id: "chat_clarification_type_instead"
+    commands:
+      - runFlow:
+          when:
+            true: ${output.photoCard}
+          commands:
+            - tapOn:
+                id: "chat_clarification_option_skip"
+                childOf:
+                  id: "chat_clarification_card.*"
+                  containsDescendants:
+                    - id: "chat_clarification_type_instead"
+            - evalScript: ${console.log('[AGENTIC] clarification answered - photo, continue without a photo (by its footer)')}
+      - runFlow:
+          when:
+            true: ${!output.photoCard}
+          commands:
+            - tapOn:
+                id: "chat_(clarification|confirmation)_option_0"
+                childOf:
+                  id: "chat_(clarification|confirmation)_card.*"
+                  containsDescendants:
+                    - id: "chat_clarification_type_instead"
+            # The location card's first chip opens the Android prompt.
+            - runFlow:
+                when:
+                  visible:
+                    id: "chat_clarification_card_location"
+                commands:
+                  - runFlow: grant_runtime_permission.yaml
+            - evalScript: ${console.log('[AGENTIC] clarification answered - first chip (by its footer)')}
+      - evalScript: ${output.chipDone = true}

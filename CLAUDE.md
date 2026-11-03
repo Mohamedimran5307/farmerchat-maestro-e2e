@@ -181,7 +181,9 @@ answers with `helpers/wait_for_answer.yaml` (handles both build types; taps the 
 clarification before the answer (`chat_clarification_option_0`) — except the photo card
 (`chat_clarification_card_photo`), where it's "Continue without photo"
 (`chat_clarification_option_skip`). A pending card is the one whose option still shows its
-number: answered cards keep their tags but show a tick on the chosen option. A confirmation card
+number: answered cards keep their tags but show a tick on the chosen option. The number node can
+drop out of the tree (accessibility bug, 3 Nov CI), so a card is also found by its "Type or say it"
+footer (`chat_clarification_type_instead`), which only a card still waiting has. A confirmation card
 that comes **before** the answer ("Please Confirm", 2 Nov build) blocks it, so it's answered the same
 way (`chat_confirmation_option_0`). The agent's turns are awaited
 between taps, nothing is asserted while it's working). Only with `output.handleFollowUps` (TC03)
