@@ -123,10 +123,14 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   `main` (push / PR), so merge via a PR to get CI on these changes.
 - **`app.apk`** is tracked via **git LFS** (`.gitattributes`). Note `.gitignore` also lists `*.apk`,
   but the committed binary is the LFS object — CI does `git lfs pull` then `adb install -r app.apk`.
-- CI: `.github/workflows/maestro-tests.yml` runs on a **self-hosted macOS ARM64** runner (push/PR to
-  `main`, daily cron, manual dispatch). It boots an emulator, grants permissions, disables animations,
-  `adb forward tcp:7001`, then runs `./run_tests.sh "CI"`. The Post Summary step parses the
-  `reports/FarmerChat_*_Test_Report_*.json` summary block for the pass/fail counts.
+- CI: `.github/workflows/maestro-tests.yml` runs on a **self-hosted macOS ARM64** runner
+  (`mac-m4-runner`, the tester's MacBook; it uses the attached phone, else boots an emulator).
+  Suite per trigger: PR / push to `main` → `@smoke`; nightly at 02:00 IST (20:30 UTC, workflow
+  file from `main`) → full regression; manual "Run workflow" → a chosen suite (smoke default) on any
+  branch. One run at a time (shared `concurrency` group). It runs `./run_tests.sh "CI" <filter>`
+  with `SKIP_DRIVE_UPLOAD=1`; reports are run artifacts, and the GitHub Pages report is published
+  only from `main` (the `github-pages` environment only allows `main`). The Post Summary step
+  parses the `reports/FarmerChat_*_Test_Report_*.json` summary block for the pass/fail counts.
 
 ## When editing flows
 

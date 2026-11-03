@@ -1,13 +1,26 @@
 name: FarmerChat Maestro Tests
 
+# Which suite runs:
+#   pull request / push to main -> smoke (~15 min): the go/no-go gate
+#   nightly schedule            -> regression, every test (~52 min)
+#   "Run workflow" (manual)     -> the suite picked below (default smoke),
+#                                  on whichever branch is selected
+# The schedule always runs the workflow file on the default branch (main).
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 6 * * *'
+    # 20:30 UTC = 02:00 IST, when nobody is using the test phone.
+    - cron: '30 20 * * *'
   workflow_dispatch:
+    inputs:
+      suite:
+        description: "Suite to run"
+        type: choice
+        options: [smoke, functional, regression]
+        default: smoke
 
 env:
   APP_ID: org.digitalgreen.farmer.chat
@@ -18,7 +31,8 @@ permissions:
   pages: write
   id-token: write
 
-# Let a newer run supersede an in-flight Pages deploy rather than fail it.
+# One run at a time: there is one test phone, and a Pages deploy must not be
+# cut off by a newer run. Later runs queue until the current one finishes.
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -157,10 +171,30 @@ jobs:
             echo "PHONE_NUMBER/OTP_CODE secrets not set — sign-up tests will skip."
           fi
 
+      - name: Pick the suite
+        run: |
+          case "${{ github.event_name }}" in
+            workflow_dispatch) SUITE="${{ inputs.suite }}" ;;
+            schedule)          SUITE="regression" ;;
+            *)                 SUITE="smoke" ;;
+          esac
+          case "$SUITE" in
+            smoke)      FILTER="@smoke" ;;
+            functional) FILTER="@functional" ;;
+            *)          FILTER="" ;;   # no filter = every test
+          esac
+          echo "SUITE=$SUITE" >> "$GITHUB_ENV"
+          echo "FILTER=$FILTER" >> "$GITHUB_ENV"
+          echo "### Suite: $SUITE" >> "$GITHUB_STEP_SUMMARY"
+          echo "Running suite: $SUITE (filter: ${FILTER:-none})"
+
       - name: Run test suite
+        env:
+          # Reports stay in the run's artifacts; never upload to Google Drive.
+          SKIP_DRIVE_UPLOAD: "1"
         run: |
           chmod +x run_tests.sh
-          ./run_tests.sh "CI"
+          ./run_tests.sh "CI" $FILTER
 
       - name: Remove local secrets
         if: always()
@@ -253,9 +287,11 @@ jobs:
   # Publish the HTML report to GitHub Pages → a clickable URL per run. Runs on a
   # GitHub-hosted runner (Pages tooling + doesn't tie up the self-hosted Mac),
   # consuming the report bundle uploaded by maestro-tests.
+  # The github-pages environment only accepts deployments from main, so runs
+  # on other branches skip this job (their reports are in the artifacts).
   publish-report:
     needs: maestro-tests
-    if: always()
+    if: always() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

@@ -158,6 +158,21 @@ maestro --device <serial> test flows/core/TC_17_drawer_home_navigation.yaml -e A
   and one `.mp4` per attempt. The HTML report links to these videos.
 - `reports/` is gitignored.
 
+### In CI (GitHub Actions)
+`.github/workflows/maestro-tests.yml` runs on the self-hosted Mac runner, using the phone plugged
+into it (or an emulator if none is attached).
+
+| Trigger | Suite |
+|---|---|
+| Pull request or push to `main` | Smoke (~15 min) |
+| Every night at 02:00 IST | Full regression (~52 min) |
+| **Actions → FarmerChat Maestro Tests → Run workflow** | Pick the branch and the suite (smoke, functional or regression; default smoke) |
+
+- Only one run at a time; later runs wait. Don't use the phone while a run is going.
+- Reports are in the run's **Artifacts**: `FarmerChat-report-<n>` (HTML/JSON) and
+  `FarmerChat-report-full-<n>` (with videos). Runs on `main` also publish the report to GitHub Pages.
+- Sign-up tests use the repo secrets `PHONE_NUMBER`, `NEW_PHONE_NUMBER` and `OTP_CODE`.
+
 ---
 
 ## 3. Project structure
