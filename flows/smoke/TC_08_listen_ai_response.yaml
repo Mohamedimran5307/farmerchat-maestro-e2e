@@ -19,36 +19,27 @@ tags:
 - evalScript: ${output.answerLabel = 'tts_question_answer'}
 - runFlow: ../../helpers/wait_for_answer.yaml
 
-# Bring the action row (right after the answer text) on screen. Where the
-# screen ends up depends on the answer's length and what follows it
-# (suggestions or confirmation chips), so look in place, then below, then
-# above — slowly, so a scroll doesn't skip past the row. No centering: near
-# the end of the chat the row can't reach the middle of the screen.
-- runFlow:
-    when:
-      notVisible:
-        id: "chat_listen_btn"
-    commands:
-      - scrollUntilVisible:
-          centerElement: false
-          element:
-            id: "chat_listen_btn"
-          direction: DOWN
-          timeout: 15000
-          speed: 20
-          optional: true
-- runFlow:
-    when:
-      notVisible:
-        id: "chat_listen_btn"
-    commands:
-      - scrollUntilVisible:
-          centerElement: false
-          element:
-            id: "chat_listen_btn"
-          direction: UP
-          timeout: 15000
-          speed: 20
+# Centre the Listen button before tapping it, so the whole button is on
+# screen. Tapped where it first appears, it can sit at the bottom edge with
+# only 24 px showing above the composer (seen 3 Nov, when the pause check
+# failed). First let the chat finish posting what follows the
+# answer (suggestions or a card) — that moves the row, and it gives the
+# row room below to scroll up to the middle; then scroll back up to it.
+- scrollUntilVisible:
+    centerElement: false
+    element:
+      id: "chat_suggested_questions|chat_confirmation_card"
+    direction: DOWN
+    timeout: 20000
+    optional: true
+- scrollUntilVisible:
+    centerElement: true
+    element:
+      id: "chat_listen_btn"
+    direction: UP
+    timeout: 20000
+    speed: 20
+    label: "Listen button centred on screen"
 
 # Playback state via testTags (4.1.7+): idle → loading → playing → paused.
 - assertVisible:
