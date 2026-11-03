@@ -300,6 +300,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
     steps:
       - name: Download the HTML + JSON report
         uses: actions/download-artifact@v4
@@ -399,9 +400,13 @@ jobs:
           PY
 
       - name: Push to gh-pages
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           cd site
           git add -A
           git commit -m "Report for run #${{ github.run_number }} (${{ needs.maestro-tests.outputs.suite || 'unknown' }}, ${{ github.ref_name }})"
           git push origin gh-pages
+          # A push made with the workflow token may not start a Pages build.
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" >/dev/null || true
           echo "Report: https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/runs/${{ github.run_number }}-${{ needs.maestro-tests.outputs.suite || 'unknown' }}/" >> "$GITHUB_STEP_SUMMARY"
