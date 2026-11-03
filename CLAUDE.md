@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A [Maestro](https://maestro.mobile.dev/) UI test suite for the **FarmerChat** Android app
 (`appId` = `org.digitalgreen.farmer.chat`). There is no application code here — only declarative
-YAML flows, reusable sub-flows, and bash runners that orchestrate Maestro + adb and generate HTML/JSON reports.
+YAML flows, reusable sub-flows, and one bash runner (`run_tests.sh`) that orchestrates Maestro + adb and generates HTML/JSON reports.
 
 ## Test layout & conventions
 
@@ -118,6 +118,9 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
 
 ## App binary & CI
 
+- **Branch / build:** work happens on `farmerchat-4.1.7-nov2026` (renamed from `apk-rewrite-jun2026`
+  on 3 Nov 2026); `app.apk` there is the 4.1.7 stage debug build of 2 Nov 2026. CI only runs for
+  `main` (push / PR), so merge via a PR to get CI on these changes.
 - **`app.apk`** is tracked via **git LFS** (`.gitattributes`). Note `.gitignore` also lists `*.apk`,
   but the committed binary is the LFS object — CI does `git lfs pull` then `adb install -r app.apk`.
 - CI: `.github/workflows/maestro-tests.yml` runs on a **self-hosted macOS ARM64** runner (push/PR to
@@ -136,7 +139,8 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
   answer — lands in view top-first), taps chips where they land, and scrolls down only once a
   finished answer is there. It completes on the Share/Listen row or the suggestions, and fails on the
   inline error (`chat_retry_btn`), on the "Sorry, I had a problem just now" failure reply (it looks
-  like a normal answer), and on an answer without real text. There is **no answer-time limit**: a
+  like a normal answer; `chat_ai_message_error`, plus its wording until that tag has been seen), and
+  on an answer without real text. There is **no answer-time limit**: a
   single UI sample says nothing about performance (measure latency in the backend); a hang still
   fails, because the waits time out.
 - After an answer, chat tests assert the **Share button** only: a `scrollUntilVisible` to it,
@@ -168,7 +172,9 @@ answers with `helpers/wait_for_answer.yaml` (handles both build types; taps the 
 clarification before the answer (`chat_clarification_option_0`) — except the photo card
 (`chat_clarification_card_photo`), where it's "Continue without photo"
 (`chat_clarification_option_skip`). A pending card is the one whose option still shows its
-number: answered cards keep their tags but show a tick on the chosen option. The agent's turns are awaited
+number: answered cards keep their tags but show a tick on the chosen option. A confirmation card
+that comes **before** the answer ("Please Confirm", 2 Nov build) blocks it, so it's answered the same
+way (`chat_confirmation_option_0`). The agent's turns are awaited
 between taps, nothing is asserted while it's working). Only with `output.handleFollowUps` (TC03)
 does it also answer a confirmation after the answer (first chip, found by
 `chat_confirmation_option_0`) and wait for the suggestions, which come after any confirmation card
@@ -178,9 +184,9 @@ at the end of the chat; never type a follow-up. Each Maestro check on an absent 
 
 ### 4.1.x UI pitfalls (learned on device)
 
-- **Composer** (`[Camera] [field] [Voice/Send]`) has no testTags yet — the `composer_*.yaml` helpers
-  match its labels ("Ask about your farm...", "Send", "Camera", "Voice") with a legacy-id fallback.
-  Its border animates forever, so `waitForAnimationToEnd` always runs to its limit and taps wait to
+- **Composer** (`[Camera] [field] [Voice/Send]`): the `composer_*.yaml` helpers use its tags
+  (`composer_text_field`, `composer_send_button`, `composer_photo_button`, `composer_voice_button`)
+  and fall back to older ids / its labels only if a tag is missing. Its border animates forever, so `waitForAnimationToEnd` always runs to its limit and taps wait to
   settle: use `waitToSettleTimeoutMs: 500` on taps and wait for a concrete element instead.
 - **The hamburger/weather buttons float over the feed** and the header text stays in the hierarchy
   behind the cards, so none of them indicate scroll position. FC-FEED-01/02 use the first card's question
@@ -198,5 +204,11 @@ at the end of the chat; never type a follow-up. Each Maestro check on an absent 
   34 px even with no chat update after the answer, and it passed 1 of 3.
   The same bug also collapses suggestion rows, drops the Listen state tags and, during loading,
   the `chat_user_message` tag (details in `TESTTAG_REQUESTS_CRITICAL.md`).
+- **Settings → Sign Up** shows the account-benefits screen (Skip) only to a user who has asked
+  fewer than 3 questions; after that it opens the phone-number screen (`auth_screen`) directly.
+  Expected behaviour. The count survives the runner's data wipe (likely kept per device on the
+  server), so sign-up flows must accept both screens (TC20, TC11 do).
+- **Voice (FC-VOICE-01 / TC10):** the test doesn't speak, but room noise can be transcribed and sent
+  as a question. Both outcomes pass: transcribed → `wait_for_answer` + Share; nothing heard → Retry.
 - Some devices (e.g. Vivo) open the **Files** picker for the gallery, others the Photo picker; FC-PHOTO-01
   handles both. OPPO/ColorOS has no `screenrecord`, so it can't record video.

@@ -10,13 +10,23 @@ of every test.
   | Suite | What it runs | When | Typical time (one phone) |
   |---|---|---|---|
   | **Smoke** | `smoke` batch, TC01–TC08 | Every new build. If it fails, reject the build. | ~15 min |
-  | **Functional** | `core`, `settings_help`, `first_launch`, `offline`, TC09–TC35 | When testing features | ~40 min |
-  | **Regression** | Every batch | Before a release | ~55 min |
+  | **Functional** | `core`, `settings_help`, `first_launch`, `offline`, TC09–TC35 | When testing features | ~37 min |
+  | **Regression** | Every batch | Before a release | ~52 min |
 
 - Tests check **functionality only**: screens open, every chat turn completes, and the answer shows
   its Share button. What the AI says is checked in the separate evals project.
 - Elements are found by their **test tags**, not by wording, so tests work in any app language.
   Missing tags are listed for the developer in `TESTTAG_REQUESTS_CRITICAL.md`.
+
+### Current status (3 Nov 2026)
+| | |
+|---|---|
+| Branch | `farmerchat-4.1.7-nov2026` (renamed from `apk-rewrite-jun2026`) |
+| App under test | FarmerChat 4.1.7 stage debug build of 2 Nov 2026 (`app.apk`, agentic) |
+| Smoke | 7/7 passed on the first attempt, 14m 44s; TC08 quarantined |
+| Functional | 27/27 passed, 36m 45s; 26 on the first attempt (TC10 needed a retry) |
+| Quarantined | TC08 (FC-TTS-01): app bug, the Listen button collapses in the accessibility tree |
+| Waiting on the developer | Tags on the Terms/Privacy page, the FAQ page, the photo in the user's message and two voice states; the Listen bug (all in `TESTTAG_REQUESTS_CRITICAL.md`) |
 
 ---
 
@@ -35,8 +45,8 @@ of every test.
 ### Steps
 1. **Get the code and the APK**
    ```bash
-   git clone <repo-url> Maestro_automation_FarmerChat_End_to_End_Flow
-   cd Maestro_automation_FarmerChat_End_to_End_Flow
+   git clone -b farmerchat-4.1.7-nov2026 https://github.com/Mohamedimran5307/farmerchat-maestro-e2e.git
+   cd farmerchat-maestro-e2e
    git lfs pull
    ```
 2. **Install the app on the phone.** The APK must be a **debuggable** build: the runner wipes the
@@ -270,3 +280,5 @@ The full rules are in `docs/TEST_STRATEGY.md` and `CLAUDE.md`.
 | "Send via SMS" does nothing at sign-up | The device has hit the 2-numbers limit. Use only `PHONE_NUMBER` and `NEW_PHONE_NUMBER`. |
 | Videos are missing | `RECORD_DISABLED=1` was set, or the phone blocks screen recording (OPPO / ColorOS). |
 | Tests stop with the phone locked | Unlock the phone. Keep it unlocked and on charge during runs. |
+| `adb: device '<serial>' not found` in a log | The USB connection dropped for a moment; the retry usually passes. Use a good cable and keep the phone plugged in. |
+| TC08 (Listen) is skipped | It's quarantined until the app's Listen accessibility bug is fixed; `RUN_QUARANTINED=1` runs it. |

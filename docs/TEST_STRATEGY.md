@@ -95,8 +95,8 @@ Non-agentic builds answer directly and end with suggestions. **Every test must p
   visible bubbles); it's listed for the developer.
 - **Every turn must complete:** an answer counts as complete once the Share/Listen row or the
   suggestions show, it has real text, no Retry button, and it isn't the failure reply ("Sorry, I
-  had a problem just now. Please ask your question again." — looks like a normal answer, so it is
-  caught by its wording). There is no answer-time limit in UI tests: one sample per test says
+  had a problem just now. Please ask your question again." — looks like a normal answer; caught by
+  its tag `chat_ai_message_error` and, until that tag has been seen on a real failure, its wording). There is no answer-time limit in UI tests: one sample per test says
   nothing about performance and only adds noise; answer latency (p50/p90 per build) is measured
   in the backend. A hang still fails, because the waits time out.
 - **Follow-ups (FC-CHAT-01 / TC03 only):** after any confirmation, scroll to the end; the
@@ -112,13 +112,15 @@ Non-agentic builds answer directly and end with suggestions. **Every test must p
   that still shows "1": answered cards keep their tags, with a tick on the chosen option); scroll down only once a finished answer is there, to reach its action row / suggestions.
 - Keep conditional checks to a minimum: each check on an absent element costs about 3.5s, because
   FarmerChat's animations never let the screen settle.
-- The report logs per answer how many clarifications were answered, and both the answer-only time
-  (the SLA figure) and the total including clarification rounds. Anything a test couldn't exercise
-  (e.g. no follow-up offered) is logged as `[NOTE]` and shown as a warning.
+- The report logs per answer how many clarifications were answered. Anything a test couldn't
+  exercise (e.g. no follow-up offered) is logged as `[NOTE]` and shown as a warning.
+- A **confirmation card can come before the answer** ("Please Confirm": step-by-step plan / short
+  summary, seen on the 2 Nov build). It blocks the answer, so `wait_for_answer` answers it like a
+  clarification (`chat_confirmation_option_0`).
 - FC-AGENT-01 (`# requires: AGENTIC=true`) is the positive check that the agent clarifies at all;
   every other test merely tolerates clarifications.
-- Cards, chips, the loader and the failure reply have no testTags yet (requested in
-  `TESTTAG_REQUESTS_CRITICAL.md`); until then the text fallbacks are English-only.
+- Cards, chips, the loader and the failure reply are found by their testTags (2 Nov build). Tags
+  still missing are listed in `TESTTAG_REQUESTS_CRITICAL.md`.
 
 ## 4. Flaky tests and quarantine
 
