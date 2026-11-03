@@ -169,8 +169,12 @@ into it (or an emulator if none is attached).
 | **Actions → FarmerChat Maestro Tests → Run workflow** | Pick the branch and the suite (smoke, functional or regression; default smoke) |
 
 - Only one run at a time; later runs wait. Don't use the phone while a run is going.
-- Reports are in the run's **Artifacts**: `FarmerChat-report-<n>` (HTML/JSON) and
-  `FarmerChat-report-full-<n>` (with videos). Runs on `main` also publish the report to GitHub Pages.
+- **Every run's report is published** (any branch, any trigger) at
+  **https://mohamedimran5307.github.io/farmerchat-maestro-e2e/**: one row per run, and each run keeps
+  its own link (`…/runs/<run>-<suite>/`) to share. The link is also on the run's summary page.
+- The site is **public**, so it gets the HTML + JSON report only. Videos and debug logs (which
+  contain the test phone numbers) stay in the run's **Artifacts** on GitHub:
+  `FarmerChat-report-<n>` (HTML/JSON) and `FarmerChat-report-full-<n>` (with videos).
 - Sign-up tests use the repo secrets `PHONE_NUMBER`, `NEW_PHONE_NUMBER` and `OTP_CODE`.
 
 ---

@@ -25,11 +25,8 @@ on:
 env:
   APP_ID: org.digitalgreen.farmer.chat
 
-# Needed for the publish-report job to deploy the HTML report to GitHub Pages.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # One run at a time: there is one test phone, and a Pages deploy must not be
 # cut off by a newer run. Later runs queue until the current one finishes.
@@ -40,6 +37,8 @@ concurrency:
 jobs:
   maestro-tests:
     runs-on: [self-hosted, macOS, ARM64]
+    outputs:
+      suite: ${{ steps.pick.outputs.suite }}
     timeout-minutes: 120
 
     steps:
@@ -172,6 +171,7 @@ jobs:
           fi
 
       - name: Pick the suite
+        id: pick
         run: |
           case "${{ github.event_name }}" in
             workflow_dispatch) SUITE="${{ inputs.suite }}" ;;
@@ -184,6 +184,7 @@ jobs:
             *)          FILTER="" ;;   # no filter = every test
           esac
           echo "SUITE=$SUITE" >> "$GITHUB_ENV"
+          echo "suite=$SUITE" >> "$GITHUB_OUTPUT"
           echo "FILTER=$FILTER" >> "$GITHUB_ENV"
           echo "### Suite: $SUITE" >> "$GITHUB_STEP_SUMMARY"
           echo "Running suite: $SUITE (filter: ${FILTER:-none})"
@@ -287,39 +288,120 @@ jobs:
   # Publish the HTML report to GitHub Pages → a clickable URL per run. Runs on a
   # GitHub-hosted runner (Pages tooling + doesn't tie up the self-hosted Mac),
   # consuming the report bundle uploaded by maestro-tests.
-  # The github-pages environment only accepts deployments from main, so runs
-  # on other branches skip this job (their reports are in the artifacts).
+  # Publish every run's report to GitHub Pages, from any branch and trigger.
+  # Only the HTML + JSON summary is published: the site is public, and the
+  # debug logs and sign-up videos contain the test phone numbers / OTP (those
+  # stay in the run's artifacts). Each run gets its own folder on the gh-pages
+  # branch (runs/<run>-<suite>/) and the index lists every run, newest first.
+  # Pages serves the gh-pages branch.
   publish-report:
     needs: maestro-tests
-    if: always() && github.ref == 'refs/heads/main'
+    if: always()
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+    permissions:
+      contents: write
     steps:
-      - name: Download report bundle
+      - name: Download the HTML + JSON report
         uses: actions/download-artifact@v4
         with:
-          name: FarmerChat-report-full-${{ github.run_number }}
-          path: site
+          name: FarmerChat-report-${{ github.run_number }}
+          path: new
         continue-on-error: true
 
-      - name: Prepare site (latest report as index.html)
+      - name: Check out gh-pages (create it on first use)
         run: |
-          mkdir -p site
-          latest=$(ls -t site/FarmerChat_*_Test_Report_*.html 2>/dev/null | head -1)
-          if [ -n "$latest" ]; then
-            cp "$latest" site/index.html
-            echo "Published $(basename "$latest") as index.html"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          REPO="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$REPO" gh-pages >/dev/null; then
+            git clone --depth 1 --branch gh-pages "$REPO" site
           else
-            echo "<h1>No FarmerChat report for run #${{ github.run_number }}</h1><p>The run produced no HTML report (it may have failed before tests ran).</p>" > site/index.html
+            git init -b gh-pages site
+            git -C site remote add origin "$REPO"
+            touch site/.nojekyll
           fi
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
+      - name: Add this run and rebuild the index
+        env:
+          RUN: ${{ github.run_number }}
+          SUITE: ${{ needs.maestro-tests.outputs.suite || 'unknown' }}
+          BRANCH: ${{ github.ref_name }}
+          TRIGGER: ${{ github.event_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 - <<'PY'
+          import glob, html, json, os, shutil
+          from datetime import datetime, timedelta, timezone
 
-      - name: Deploy to GitHub Pages
-        id: deploy
-        uses: actions/deploy-pages@v4
+          run, suite = os.environ["RUN"], os.environ["SUITE"]
+          folder = f"site/runs/{run}-{suite}"
+          os.makedirs(folder, exist_ok=True)
+
+          reports = sorted(glob.glob("new/FarmerChat_*_Test_Report_*.html"))
+          summary = {}
+          if reports:
+              shutil.copy(reports[-1], f"{folder}/index.html")
+              js = reports[-1][:-5] + ".json"
+              if os.path.exists(js):
+                  shutil.copy(js, f"{folder}/report.json")
+                  summary = json.load(open(js)).get("summary", {})
+          else:
+              open(f"{folder}/index.html", "w").write(
+                  f"<h1>No report for run #{run}</h1>"
+                  "<p>The run ended before a report was written.</p>")
+
+          ist = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+          json.dump({
+              "run": int(run), "suite": suite, "branch": os.environ["BRANCH"],
+              "trigger": os.environ["TRIGGER"], "url": os.environ["RUN_URL"],
+              "date": ist.strftime("%d %b %Y, %H:%M IST"), "summary": summary,
+          }, open(f"{folder}/meta.json", "w"))
+
+          metas = []
+          for m in glob.glob("site/runs/*/meta.json"):
+              d = json.load(open(m))
+              d["path"] = os.path.basename(os.path.dirname(m))
+              metas.append(d)
+          metas.sort(key=lambda d: d["run"], reverse=True)
+
+          rows = []
+          for d in metas:
+              s = d.get("summary") or {}
+              if s:
+                  failed = s.get("failed", 0)
+                  result = (f"{s.get('passed', 0)}/{s.get('total', 0)} passed"
+                            + (f", {failed} failed" if failed else ""))
+                  colour = "#b42318" if failed else "#067647"
+              else:
+                  result, colour = "no report", "#667085"
+              e = html.escape
+              rows.append(
+                  f"<tr><td><a href='runs/{e(d['path'])}/'>#{d['run']}</a></td>"
+                  f"<td>{e(d['date'])}</td><td>{e(d['suite'])}</td>"
+                  f"<td>{e(d['branch'])}</td><td>{e(d['trigger'])}</td>"
+                  f"<td style='color:{colour}'>{e(result)}</td>"
+                  f"<td><a href='{e(d['url'])}'>run</a></td></tr>")
+
+          open("site/index.html", "w").write(
+              "<!doctype html><meta charset='utf-8'>"
+              "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+              "<title>FarmerChat test reports</title>"
+              "<style>body{font-family:system-ui,sans-serif;margin:24px;color:#101828}"
+              "table{border-collapse:collapse;width:100%}"
+              "th,td{text-align:left;padding:8px;border-bottom:1px solid #eaecf0}"
+              "th{background:#f9fafb}</style>"
+              "<h1>FarmerChat test reports</h1>"
+              "<p>One row per CI run, newest first. Videos and logs are in each run's "
+              "Artifacts on GitHub (link in the last column).</p>"
+              "<table><tr><th>Run</th><th>Date</th><th>Suite</th><th>Branch</th>"
+              "<th>Trigger</th><th>Result</th><th>GitHub</th></tr>"
+              + "".join(rows) + "</table>")
+          PY
+
+      - name: Push to gh-pages
+        run: |
+          cd site
+          git add -A
+          git commit -m "Report for run #${{ github.run_number }} (${{ needs.maestro-tests.outputs.suite || 'unknown' }}, ${{ github.ref_name }})"
+          git push origin gh-pages
+          echo "Report: https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/runs/${{ github.run_number }}-${{ needs.maestro-tests.outputs.suite || 'unknown' }}/" >> "$GITHUB_STEP_SUMMARY"
