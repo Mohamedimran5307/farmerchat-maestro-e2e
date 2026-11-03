@@ -23,10 +23,14 @@ appId: ${APP_ID}
     commands:
       # The screen first applies a default language (spinner on that
       # item) and drops the item tags until it's done, so allow for that.
+      # 30 s, not 15: Maestro counts this limit from the last interaction
+      # (launchApp), and on a slow phone the language screen alone can take
+      # ~10 s — 15 s left only ~5 s for the list (Redmi, CI run #184, 3 Nov).
+      # Returns as soon as the item shows, so fast phones lose nothing.
       - extendedWaitUntil:
           visible:
             id: "language_item_${LANGUAGE_CODE}"
-          timeout: 15000
+          timeout: 30000
       - tapOn:
           id: "language_item_${LANGUAGE_CODE}"
       - extendedWaitUntil:
