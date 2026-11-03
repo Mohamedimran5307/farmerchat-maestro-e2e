@@ -78,6 +78,8 @@ appId: ${APP_ID}
             true: ${output.sugText == ''}
           commands:
             - evalScript: ${console.log('[NOTE] Suggestion text not readable (accessibility bug) - its message check is skipped')}
+      # Same chat: the first answer's Share row must not pass for this one.
+      - evalScript: ${output.sameChat = true}
       - runFlow: wait_for_answer.yaml
       - evalScript: ${output.followupDone = true}
 - runFlow:

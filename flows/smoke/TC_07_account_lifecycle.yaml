@@ -28,9 +28,12 @@ tags:
     timeout: 10000
 
 # ── Seed history with a question only this run could have asked ──
+# A specific question the agent answers directly (3/3 on 3 Nov): "How to
+# grow maize" made it ask "Please Confirm" (plan or overview) first — an
+# extra turn this test doesn't need.
 - evalScript: ${output.runTag = 'run' + String(Date.now()).slice(-6)}
 - runFlow: ../../helpers/composer_focus_text.yaml
-- inputText: ${'How to grow maize, test ' + output.runTag}
+- inputText: ${'What is the seed rate for maize per acre? test ' + output.runTag}
 - hideKeyboard
 - runFlow: ../../helpers/composer_send.yaml
 - evalScript: ${output.answerLabel = 'history_seed_answer'}
