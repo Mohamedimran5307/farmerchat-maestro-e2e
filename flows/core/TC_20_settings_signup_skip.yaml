@@ -4,9 +4,10 @@ name: "TC20 - Settings → Sign Up → Skip / Close Returns to Settings"
 # priority: P2
 # requires: PHONE_NUMBER,OTP_CODE
 # description: Leaving sign-up from Settings without signing up returns to Settings.
-# On the 2 Nov build Settings → Sign Up opens either the account-benefits
-# screen (left with Skip) or, on some visits, the phone-number screen
-# directly (left with its X). Both must land back on Settings.
+# Expected app behaviour: a user who has asked fewer than 3 questions
+# sees the account-benefits screen (left with Skip); after 3 or more
+# questions Settings → Sign Up opens the phone-number screen directly
+# (left with its X). Both must land back on Settings.
 tags:
   - settings
   - auth
