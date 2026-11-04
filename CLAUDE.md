@@ -119,7 +119,7 @@ maestro --device emulator-5554 test flows/smoke/TC_02_type_question_ai_response.
 ## App binary & CI
 
 - **Branch / build:** work happens on `farmerchat-4.1.7-nov2026` (renamed from `apk-rewrite-jun2026`
-  on 3 Nov 2026); `app.apk` there is the 4.1.7 stage debug build of 2 Nov 2026. CI only runs for
+  on 3 Nov 2026); `app.apk` there is the 4.1.7 stage debug build of 4 Nov 2026. CI only runs for
   `main` (push / PR), so merge via a PR to get CI on these changes.
 - **`app.apk`** is tracked via **git LFS** (`.gitattributes`). Note `.gitignore` also lists `*.apk`,
   but the committed binary is the LFS object — CI does `git lfs pull` then `adb install -r app.apk`.
