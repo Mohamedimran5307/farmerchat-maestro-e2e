@@ -3,8 +3,8 @@ name: "TC28 - First-Launch: Open Privacy Policy from Language Screen"
 # id: FC-LEGAL-02
 # priority: P2
 # description: Language screen's Privacy Policy link opens the document.
-# The document page has no testTags yet (legal_document_screen / _title
-# requested), so its title is still matched by text.
+# The document page is found by its tags (legal_document_screen /
+# _title, 4 Nov build).
 tags:
   - onboarding
   - legal
@@ -44,7 +44,12 @@ tags:
 # The Privacy Policy document opens.
 - extendedWaitUntil:
     visible:
-      text: "Privacy Policy"
+      id: "legal_document_screen"
     timeout: 15000
+    label: "Privacy Policy page opens"
+- assertVisible:
+    id: "legal_document_title"
+    text: ".+"
+    label: "Privacy Policy page shows its title"
 - assertNotVisible:
     id: "language_screen"

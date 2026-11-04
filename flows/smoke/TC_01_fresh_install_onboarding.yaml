@@ -39,6 +39,20 @@ tags:
 # Android 13+ asks for notifications right after onboarding.
 - runFlow: ../../helpers/grant_runtime_permission.yaml
 
+# "What should we call you?" (name_screen) can come next — not on every
+# launch (seen once, 4 Nov). Skipped, as complete_onboarding.yaml does.
+- extendedWaitUntil:
+    visible:
+      id: "home_screen|name_screen"
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: "name_screen"
+    commands:
+      - tapOn:
+          id: "name_skip_button"
+
 # Home with its core pieces, and the feed actually loaded.
 - extendedWaitUntil:
     visible:

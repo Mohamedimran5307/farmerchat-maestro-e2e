@@ -62,19 +62,16 @@ tags:
     timeout: 15000
 - runFlow: ../../helpers/composer_send.yaml
 
-- evalScript: ${output.answerLabel = 'photo_answer'}
-- runFlow: ../../helpers/wait_for_answer.yaml
-
-# Once the response is shown: the photo really went out in the user's
-# message. Soft until the app
-# tags the image (requested: chat_user_message_image) — then make this a
-# hard check by removing "optional".
+# The photo really went out in the user's message. Checked right after
+# sending: once the answer arrives the bubble scrolls off the top.
 - extendedWaitUntil:
     visible:
       id: "chat_user_message_image"
-    timeout: 3000
-    optional: true
-    label: "Photo shown in the user's message (soft check until tagged)"
+    timeout: 10000
+    label: "Photo shown in the user's message"
+
+- evalScript: ${output.answerLabel = 'photo_answer'}
+- runFlow: ../../helpers/wait_for_answer.yaml
 
 # The answer is complete and shows its Share button. Follow-up questions
 # and confirmation cards are FC-CHAT-01's (TC03) job; what the answer

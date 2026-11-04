@@ -34,9 +34,14 @@ tags:
     id: "help_faq_item_1"
 - extendedWaitUntil:
     visible:
-      id: "faqs-${LANGUAGE_CODE}"
+      id: "faq_screen"
     timeout: 10000
     label: "FAQ page opens"
+- extendedWaitUntil:
+    visible:
+      id: "faqs-${LANGUAGE_CODE}"
+    timeout: 10000
+    label: "FAQ content loads"
 - assertNotVisible:
     id: "help_screen"
     label: "FAQ page replaced Help"
@@ -84,14 +89,14 @@ tags:
     label: "Question 2 stayed open"
 
 # ── Leave: back to Help ──
-# The FAQ page's close (X) button has no tag yet (requested); system Back
-# does the same.
-- back
+# With the page's close (X) button (faq_close_btn, 4 Nov build).
+- tapOn:
+    id: "faq_close_btn"
 - extendedWaitUntil:
     visible:
       id: "help_screen"
     timeout: 5000
-    label: "Back returns to Help"
+    label: "X returns to Help"
 - assertNotVisible:
-    id: "faqs-${LANGUAGE_CODE}"
+    id: "faq_screen"
     label: "FAQ page closed"

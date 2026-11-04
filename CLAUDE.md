@@ -222,6 +222,9 @@ at the end of the chat; never type a follow-up. Each Maestro check on an absent 
   fewer than 3 questions; after that it opens the phone-number screen (`auth_screen`) directly.
   Expected behaviour. The count survives the runner's data wipe (likely kept per device on the
   server), so sign-up flows must accept both screens (TC20, TC11 do).
+- **Name screen** ("What should we call you?", `name_screen`) can follow the language screen —
+  not on every launch (seen once in four fresh launches, 4 Nov build). `complete_onboarding.yaml`
+  and TC01 skip it with `name_skip_button`; the rule for when it shows is asked of the developer.
 - **Voice (FC-VOICE-01 / TC10):** the test doesn't speak, but room noise can be transcribed and sent
   as a question. Both outcomes pass: transcribed → `wait_for_answer` + Share; nothing heard → Retry.
 - Some devices (e.g. Vivo) open the **Files** picker for the gallery, others the Photo picker; FC-PHOTO-01

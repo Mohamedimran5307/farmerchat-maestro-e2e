@@ -3,9 +3,10 @@ name: "TC29 - First-Launch: Open and Close Both Legal Documents"
 # id: FC-LEGAL-03
 # priority: P2
 # description: Each legal document closes back to the language screen.
-# Opens Terms, closes it, opens Privacy, closes it. Closed with the
-# system Back: the page's X button has no testTag yet
-# (appbar_default_left_btn / legal_document_* requested).
+# Opens Terms, closes it with its X button, opens Privacy, closes it with
+# the system Back. Pages found by their tags (legal_document_screen /
+# _title, X = appbar_default_left_btn, 4 Nov build); the two titles must
+# differ, so the right document opened — no wording is matched.
 tags:
   - onboarding
   - legal
@@ -39,31 +40,44 @@ tags:
 - assertVisible:
     id: "language_privacy_btn"
 
-# Terms: open → close → back on the language screen.
+# Terms: open → close with X → back on the language screen.
 - tapOn:
     id: "language_terms_btn"
 - extendedWaitUntil:
     visible:
-      text: "Terms of Use"
+      id: "legal_document_screen"
     timeout: 15000
-- back
+    label: "Terms page opens"
+- copyTextFrom:
+    id: "legal_document_title"
+- evalScript: ${output.termsTitle = maestro.copiedText}
+- tapOn:
+    id: "appbar_default_left_btn"
 - extendedWaitUntil:
     visible:
       id: "language_screen"
     timeout: 5000
+    label: "X closes Terms"
 
-# Privacy: open → close → back on the language screen.
+# Privacy: open → close with Back → back on the language screen.
 - tapOn:
     id: "language_privacy_btn"
 - extendedWaitUntil:
     visible:
-      text: "Privacy Policy"
+      id: "legal_document_screen"
     timeout: 15000
+    label: "Privacy page opens"
+- copyTextFrom:
+    id: "legal_document_title"
+- assertTrue:
+    condition: ${maestro.copiedText != '' && maestro.copiedText != output.termsTitle}
+    label: "Privacy page has its own title, not the Terms one"
 - back
 - extendedWaitUntil:
     visible:
       id: "language_screen"
     timeout: 5000
+    label: "Back closes Privacy"
 
 # Still usable: the legal links and the Start button are there.
 - assertVisible:

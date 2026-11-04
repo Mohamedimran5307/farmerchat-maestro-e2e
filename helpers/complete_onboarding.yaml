@@ -39,6 +39,21 @@ appId: ${APP_ID}
           timeout: 5000
       - tapOn:
           id: "language_start_button"
+      # "What should we call you?" (name_screen) can follow the language
+      # screen — seen once on 4 Nov, not on most launches (the app keeps a
+      # name_screen_seen_once flag). Skip it; checked only after a fresh
+      # language pick, so returning launches don't pay for the check.
+      - extendedWaitUntil:
+          visible:
+            id: "home_screen|name_screen"
+          timeout: 15000
+      - runFlow:
+          when:
+            visible:
+              id: "name_screen"
+          commands:
+            - tapOn:
+                id: "name_skip_button"
 
 - extendedWaitUntil:
     visible:

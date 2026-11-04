@@ -3,10 +3,6 @@ name: "TC25 - Help: Open Privacy Policy"
 # id: FC-HELP-03
 # priority: P2
 # description: Help opens the Privacy Policy.
-# TODO: help_privacy_policy testTag and the "LAST UPDATED: DECEMBER 2025"
-# date string both carry over from the old APK. The date will need
-# bumping with each privacy-policy revision — consider replacing
-# with a stable "Privacy Policy" header assertion only.
 tags:
   - help
   - regression
@@ -38,9 +34,16 @@ tags:
 - tapOn:
     id: "help_item_privacy"
 
+# The Privacy Policy page opens (by its tags; its title is in the app's language).
 - extendedWaitUntil:
     visible:
-      text: "Privacy Policy"
+      id: "legal_document_screen"
     timeout: 15000
+    label: "Privacy Policy page opens"
 - assertVisible:
-    text: "Privacy Policy"
+    id: "legal_document_title"
+    text: ".+"
+    label: "Privacy Policy page shows its title"
+- assertNotVisible:
+    id: "help_screen"
+    label: "Privacy Policy page replaced Help"

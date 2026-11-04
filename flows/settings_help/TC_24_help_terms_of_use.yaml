@@ -3,9 +3,6 @@ name: "TC24 - Help: Open Terms of Use"
 # id: FC-HELP-02
 # priority: P2
 # description: Help opens the Terms of Use.
-# TODO: help_terms_of_use testTag carries over from the old APK and
-# needs a live-device confirmation on the new build. May now be
-# help_btn_terms or similar.
 tags:
   - help
   - regression
@@ -37,9 +34,16 @@ tags:
 - tapOn:
     id: "help_item_terms"
 
+# The Terms of Use page opens (by its tags; its title is in the app's language).
 - extendedWaitUntil:
     visible:
-      text: "Terms of Use"
+      id: "legal_document_screen"
     timeout: 15000
+    label: "Terms of Use page opens"
 - assertVisible:
-    text: "Terms of Use"
+    id: "legal_document_title"
+    text: ".+"
+    label: "Terms of Use page shows its title"
+- assertNotVisible:
+    id: "help_screen"
+    label: "Terms of Use page replaced Help"

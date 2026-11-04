@@ -4,8 +4,7 @@ name: "TC27 - First-Launch: Open Terms of Use from Language Screen"
 # priority: P2
 # description: Language screen's Terms of Use link opens the document.
 # The legal links render after a language is picked. The document page
-# has no testTags yet (legal_document_screen / _title requested), so its
-# title is still matched by text.
+# is found by its tags (legal_document_screen / _title, 4 Nov build).
 tags:
   - onboarding
   - legal
@@ -47,7 +46,12 @@ tags:
 # The Terms document opens.
 - extendedWaitUntil:
     visible:
-      text: "Terms of Use"
+      id: "legal_document_screen"
     timeout: 15000
+    label: "Terms of Use page opens"
+- assertVisible:
+    id: "legal_document_title"
+    text: ".+"
+    label: "Terms of Use page shows its title"
 - assertNotVisible:
     id: "language_screen"
