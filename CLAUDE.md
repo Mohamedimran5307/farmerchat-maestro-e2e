@@ -214,8 +214,10 @@ at the end of the chat; never type a follow-up. Each Maestro check on an absent 
 - The answer's Share/Listen row intermittently drops out of the accessibility tree (Listen missing,
   Share shrunk) — an app bug still present in 4.1.7, seen when the chat updates after the answer
   (confirmation cards, more turns). FC-TTS-01 (Listen) was quarantined for it, ran again after
-  passing 3/3 on 30 Oct, and is **quarantined again (2 Nov build)**: the Listen node collapses to
-  34 px even with no chat update after the answer, and it passed 1 of 3.
+  passing 3/3 on 30 Oct, was quarantined again on the 2 Nov build (Listen node collapsed to 34 px),
+  and **runs again from 5 Nov** (4 Nov build: passed first attempt 4 of 6). Its known failure is
+  now Pause: in ~1 run in 3 a tap during playback goes back to idle instead of paused (app bug,
+  reported to the developer) — expect it to fail on the first attempt now and then.
   The same bug also collapses suggestion rows, drops the Listen state tags and, during loading,
   the `chat_user_message` tag (details in `TESTTAG_REQUESTS_CRITICAL.md`).
 - **Settings → Sign Up** shows the account-benefits screen (Skip) only to a user who has asked
