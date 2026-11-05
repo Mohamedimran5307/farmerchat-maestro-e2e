@@ -1,0 +1,124 @@
+{
+  "testSuite": "FarmerChat Smoke Suite",
+  "appVersion": "4.1.7 (118)",
+
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "first_attempt_passed": 6,
+    "flaked": 2,
+    "quarantined": 0,
+    "skipped": 0,
+    "pass_rate": "100%",
+    "flake_rate": "25%"
+  },
+
+  "device": {
+    "manufacturer": "vivo",
+    "model": "vivo 1919",
+    "android_version": "12"
+  },
+
+  "tester": "CI",
+  "timestamp": "05 November 2026, 02:17 PM IST",
+
+  "testCases": [
+    {
+      "tc": "TC01",
+      "name": "[FC-ONB-01] Fresh Install: Language → Home → Feed Loads",
+      "description": "Fresh install: pick a language and land on home with the feed loaded.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "35s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC02",
+      "name": "[FC-AGENT-01] Agentic: Vague Question → Clarification → Answer",
+      "description": "A vague question gets a clarification card, then a complete answer.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "2m 7s",
+      "issue": "",
+      "attempts": 3,
+      "flaky": true,
+      "retry_issues": "Attempt 1:   Answer completed (action row or suggestions shown)... FAILED Run ../../helpers/wait_for_answer.yaml... FAILED   | Attempt 2:   Answer completed (action row or suggestions shown)... FAILED Run ../../helpers/wait_for_answer.yaml... FAILED  "
+    },
+    {
+      "tc": "TC03",
+      "name": "[FC-CHAT-01] Typed Question → Answer → Follow-up → Back to Home",
+      "description": "Typed question gets a complete answer; a follow-up question gets one too.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "4m 20s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC04",
+      "name": "[FC-FEED-01] First Feed Card → Ask Now → Answer",
+      "description": "First feed card's Ask Now opens a chat with a complete answer.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "1m 3s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC05",
+      "name": "[FC-PHOTO-01] Photo Question from Gallery → AI Response",
+      "description": "A gallery photo sent as a question gets a complete answer.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "1m 35s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC06",
+      "name": "[FC-LOC-01] Weather → Share Location (granted) → Answer",
+      "description": "Weather asks for location; once granted, a complete weather answer arrives.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "1m 20s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC07",
+      "name": "[FC-AUTH-01] Account Lifecycle: Sign Up → History → Log Out",
+      "description": "Sign up with phone and OTP, reopen this run's chat from Chat History, then log out.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "2m 51s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC08",
+      "name": "[FC-TTS-01] Listen to AI Response (TTS Playback)",
+      "description": "Listen plays an answer aloud and pauses on a second tap.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "1m 44s",
+      "issue": "",
+      "attempts": 3,
+      "flaky": true,
+      "retry_issues": "Attempt 1: Assert that id: chat_listen_state_paused is visible... FAILED  Assertion is false: id: chat_listen_state_paused is visible  | Attempt 2: Listen button centred on screen... FAILED  No visible element found: id: chat_listen_btn "
+    }
+  ]
+}

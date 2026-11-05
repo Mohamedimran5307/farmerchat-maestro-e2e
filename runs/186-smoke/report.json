@@ -1,0 +1,124 @@
+{
+  "testSuite": "FarmerChat Smoke Suite",
+  "appVersion": "4.1.7 (118)",
+
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "first_attempt_passed": 7,
+    "flaked": 0,
+    "quarantined": 1,
+    "skipped": 0,
+    "pass_rate": "100%",
+    "flake_rate": "0%"
+  },
+
+  "device": {
+    "manufacturer": "Redmi",
+    "model": "220733SI",
+    "android_version": "12"
+  },
+
+  "tester": "CI",
+  "timestamp": "04 November 2026, 12:08 AM IST",
+
+  "testCases": [
+    {
+      "tc": "TC01",
+      "name": "[FC-ONB-01] Fresh Install: Language → Home → Feed Loads",
+      "description": "Fresh install: pick a language and land on home with the feed loaded.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "44s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC02",
+      "name": "[FC-AGENT-01] Agentic: Vague Question → Clarification → Answer",
+      "description": "A vague question gets a clarification card, then a complete answer.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "2m 42s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC03",
+      "name": "[FC-CHAT-01] Typed Question → Answer → Follow-up → Back to Home",
+      "description": "Typed question gets a complete answer; a follow-up question gets one too.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "3m 48s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC04",
+      "name": "[FC-FEED-01] First Feed Card → Ask Now → Answer",
+      "description": "First feed card's Ask Now opens a chat with a complete answer.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "1m 23s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC05",
+      "name": "[FC-PHOTO-01] Photo Question from Gallery → AI Response",
+      "description": "A gallery photo sent as a question gets a complete answer.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "1m 45s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC06",
+      "name": "[FC-LOC-01] Weather → Share Location (granted) → Answer",
+      "description": "Weather asks for location; once granted, a complete weather answer arrives.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "2m 24s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC07",
+      "name": "[FC-AUTH-01] Account Lifecycle: Sign Up → History → Log Out",
+      "description": "Sign up with phone and OTP, reopen this run's chat from Chat History, then log out.",
+      "status": "PASSED",
+      "priority": "P0",
+      "time_taken": "3m 51s",
+      "issue": "",
+      "attempts": 1,
+      "flaky": false,
+      "retry_issues": ""
+    },
+    {
+      "tc": "TC08",
+      "name": "[FC-TTS-01] Listen to AI Response (TTS Playback)",
+      "description": "Listen plays an answer aloud and pauses on a second tap.",
+      "status": "QUARANTINED",
+      "priority": "P0",
+      "time_taken": "-",
+      "issue": "App bug (P0, TESTTAG_REQUESTS_CRITICAL.md item 2) — on the 2 Nov build the Listen button's node collapses to 34 px in the accessibility tree, so its state tags flicker; passed 1 of 3 (reports/logs_02Nov2026_122720). Remove after 3 clean passes on a fixed build.",
+      "attempts": 0,
+      "flaky": false,
+      "retry_issues": ""
+    }
+  ]
+}
