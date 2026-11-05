@@ -78,7 +78,7 @@ numbered chips (location, photo, crop, growth stage), and after answering it may
 confirmation chips (save crop to profile, gender) instead of the "You can also ask" suggestions.
 Non-agentic builds answer directly and end with suggestions. **Every test must pass on both**:
 
-- Send questions and wait with `helpers/wait_for_answer.yaml`. Rule: **always tap the first chip** — except the photo clarification (`chat_clarification_card_photo`), where it's always "Continue without photo" (`chat_clarification_option_skip`) —
+- Send questions and wait with `helpers/wait_for_answer.yaml`. Rule: **always tap the first chip** — except the photo clarification (`chat_clarification_card_photo`), where it's always "Continue without photo" (chip 3, `chat_clarification_option_2`, below the photo card's title; the 4 Nov build has no `_option_skip` on it) —
   for a clarification before the answer (the location card's first chip is "Give permission", and
   the Android prompt is then granted). Cards **after** the answer (a confirmation such as save crop /
   gender, found by `chat_confirmation_option_0`, or a late clarification) are handled only when the

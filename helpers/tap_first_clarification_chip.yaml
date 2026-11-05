@@ -4,9 +4,9 @@ appId: ${APP_ID}
 # TAP THE FIRST CHIP OF AN AGENTIC CLARIFICATION CARD
 # ============================================================
 # Called by wait_for_answer.yaml when a clarification is on screen.
-#   - Photo card (chat_clarification_card_photo): the ONE exception to
-#     "first chip" — always "Continue without photo"
-#     (chat_clarification_option_skip).
+#   - Photo card (title tagged chat_clarification_card_photo): the ONE
+#     exception to "first chip" — always "Continue without photo"
+#     (chip 3, chat_clarification_option_2; _option_skip if tagged).
 #   - Location card (chat_clarification_card_location): first chip is
 #     "Give permission" → also grants the Android location prompt.
 #   - Any other card (crop, stage, pest …): chat_clarification_option_0;
@@ -24,6 +24,14 @@ appId: ${APP_ID}
 - evalScript: ${output.photoCard = false}
 
 # ── Photo card → "Continue without photo" ──
+# As seen on the 4 Nov build (5 Nov, Vivo): the photo options sit in the
+# card under an "Add one clear photo" title, and only that title carries
+# chat_clarification_card_photo. The options are 1 Take a photo
+# (_option_0), 2 Choose/Upload a photo (_option_1), 3 Continue without
+# one/photo (_option_2) — no _option_skip tag on it. Tapping the first chip
+# here opens the camera and the test hangs there (CI 5 Nov, TC02).
+# So: the pending chip 3 below the photo title; _option_skip too, in case
+# a later build tags it. Its number ("3") shows it's still pending.
 - runFlow:
     when:
       visible:
@@ -33,14 +41,19 @@ appId: ${APP_ID}
       - runFlow:
           when:
             visible:
-              id: "chat_clarification_option_skip"
+              id: "chat_clarification_option_(skip|2)"
               containsDescendants:
                 - text: "[0-9]"
+              below:
+                id: "chat_clarification_card_photo"
           commands:
             - tapOn:
-                id: "chat_clarification_option_skip"
+                id: "chat_clarification_option_(skip|2)"
                 containsDescendants:
                   - text: "[0-9]"
+                below:
+                  id: "chat_clarification_card_photo"
+                waitToSettleTimeoutMs: 500
             - evalScript: ${output.chipDone = true}
             - evalScript: ${console.log('[AGENTIC] clarification answered - photo, continue without a photo')}
 
@@ -118,7 +131,7 @@ appId: ${APP_ID}
             true: ${output.photoCard}
           commands:
             - tapOn:
-                id: "chat_clarification_option_skip"
+                id: "chat_clarification_option_(skip|2)"
                 childOf:
                   id: "chat_clarification_card.*"
                   containsDescendants:

@@ -183,7 +183,8 @@ set it false for a non-agentic APK. Always wait for
 answers with `helpers/wait_for_answer.yaml` (handles both build types; taps the first chip of any
 clarification before the answer (`chat_clarification_option_0`) — except the photo card
 (`chat_clarification_card_photo`), where it's "Continue without photo"
-(`chat_clarification_option_skip`). A pending card is the one whose option still shows its
+(chip 3, `chat_clarification_option_2`: on the 4 Nov build only the card's "Add one clear photo" title carries
+`chat_clarification_card_photo` and there is no `_option_skip`; tapping chip 1 opens the camera and hangs). A pending card is the one whose option still shows its
 number: answered cards keep their tags but show a tick on the chosen option. The number node can
 drop out of the tree (accessibility bug, 3 Nov CI), so a card is also found by its "Type or say it"
 footer (`chat_clarification_type_instead`), which only a card still waiting has. A confirmation card

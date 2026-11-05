@@ -24,7 +24,7 @@ appId: ${APP_ID}
 # numbered chips: chat_clarification_card, _option_<n>) and may end with a
 # confirmation card (save crop / gender). Rule: always tap the FIRST chip
 # — except the photo card, where it's "Continue without photo"
-# (chat_clarification_option_skip). See tap_first_clarification_chip.yaml.
+# (chip 3, chat_clarification_option_2). See tap_first_clarification_chip.yaml.
 #
 # Functional checks only (what the AI says is covered by the evals
 # project). Failures: the answer completed (action row / suggestions),
